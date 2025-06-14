@@ -14,7 +14,7 @@ export default function ResponseModalitySelector() {
   const [selectedOption, setSelectedOption] = useState<{
     value: string;
     label: string;
-  } | null>(responseOptions[0]);
+  } | null>(responseOptions[1]);
 
   const updateConfig = useCallback(
     (modality: "audio" | "text") => {
