@@ -48,6 +48,7 @@ const LogEntry = memo(
       message: StreamingLog["message"];
     }) => ReactNode;
   }): JSX.Element => (
+    // console.log("log", log),
     <li
       className={cn(
         `plain-log`,
@@ -90,6 +91,7 @@ function tryParseCodeExecutionResult(output: string) {
 }
 
 const RenderPart = memo(({ part }: { part: Part }) => {
+  // console.log("part", part);
   if (part.text && part.text.length) {
     return <p className="part part-text">{part.text}</p>;
   }
