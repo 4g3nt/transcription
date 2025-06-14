@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import "./App.scss";
-import { LiveAPIProvider } from "./contexts/LiveAPIContext";
+import { LiveAPIProvider, useLiveAPIContext } from "./contexts/LiveAPIContext";
 import SidePanel from "./components/side-panel/SidePanel";
 import { Altair } from "./components/altair/Altair";
 import ControlTray from "./components/control-tray/ControlTray";
@@ -32,42 +32,100 @@ const apiOptions: LiveClientOptions = {
   apiKey: API_KEY,
 };
 
-function App() {
+function AppContent() {
   // this video reference is used for displaying the active stream, whether that is the webcam or screen capture
   // feel free to style as you see fit
   const videoRef = useRef<HTMLVideoElement>(null);
   // either the screen capture, the video or null, if null we hide it
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  // state to track transcription text
+  const [transcriptionText, setTranscriptionText] = useState<string>("");
+  
+  const { client } = useLiveAPIContext();
 
+  // Listen for transcription events
+  useEffect(() => {
+    const onTranscription = (text: string) => {
+      setTranscriptionText(prev => (prev + text).trim());
+    };
+
+    client.on("transcription", onTranscription);
+
+    return () => {
+      client.off("transcription", onTranscription);
+    };
+  }, [client]);
+
+  return (
+    <div className="streaming-console">
+      <SidePanel />
+      <main>
+        <div className="main-app-area">
+          {/* APP goes here */}
+          <Altair />
+          {/* Transcription display */}
+          <div className="transcription-display" style={{
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            background: 'rgba(0, 0, 0, 0.8)',
+            color: 'white',
+            padding: '20px',
+            borderRadius: '10px',
+            maxWidth: '600px',
+            maxHeight: '300px',
+            overflow: 'auto',
+            zIndex: 1000,
+            fontSize: '16px',
+            lineHeight: '1.5',
+            display: transcriptionText ? 'block' : 'none'
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px' }}>Live Transcription:</h3>
+            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{transcriptionText}</p>
+            <button 
+              onClick={() => setTranscriptionText("")}
+              style={{
+                marginTop: '10px',
+                padding: '5px 10px',
+                background: '#666',
+                color: 'white',
+                border: 'none',
+                borderRadius: '5px',
+                cursor: 'pointer'
+              }}
+            >
+              Clear
+            </button>
+          </div>
+          <video
+            className={cn("stream", {
+              hidden: !videoRef.current || !videoStream,
+            })}
+            ref={videoRef}
+            autoPlay
+            playsInline
+          />
+        </div>
+
+        <ControlTray
+          videoRef={videoRef}
+          supportsVideo={true}
+          onVideoStreamChange={setVideoStream}
+          enableEditingSettings={true}
+        >
+          {/* put your own buttons here */}
+        </ControlTray>
+      </main>
+    </div>
+  );
+}
+
+function App() {
   return (
     <div className="App">
       <LiveAPIProvider options={apiOptions}>
-        <div className="streaming-console">
-          <SidePanel />
-          <main>
-            <div className="main-app-area">
-              {/* APP goes here */}
-              <Altair />
-              <video
-                className={cn("stream", {
-                  hidden: !videoRef.current || !videoStream,
-                })}
-                ref={videoRef}
-                autoPlay
-                playsInline
-              />
-            </div>
-
-            <ControlTray
-              videoRef={videoRef}
-              supportsVideo={true}
-              onVideoStreamChange={setVideoStream}
-              enableEditingSettings={true}
-            >
-              {/* put your own buttons here */}
-            </ControlTray>
-          </main>
-        </div>
+        <AppContent />
       </LiveAPIProvider>
     </div>
   );

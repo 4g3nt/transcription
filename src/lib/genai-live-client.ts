@@ -60,6 +60,8 @@ export interface LiveClientEventTypes {
   toolcallcancellation: (
     toolcallCancellation: LiveServerToolCallCancellation
   ) => void;
+  // Emitted when transcription text is received
+  transcription: (text: string) => void;
   // Emitted when the current turn is complete
   turncomplete: () => void;
 }
@@ -195,7 +197,9 @@ export class GenAILiveClient extends EventEmitter<LiveClientEventTypes> {
     // or contentUpdate { end_of_turn: true }
     if (message.serverContent) {
       if (message.serverContent.inputTranscription?.text) {
-        console.log(message.serverContent.inputTranscription.text || '');
+        const transcriptionText = message.serverContent.inputTranscription.text;
+        this.emit("transcription", transcriptionText);
+        this.log("server.transcription", transcriptionText);
       }
 
       // console.log("serverContent", message.serverContent);
