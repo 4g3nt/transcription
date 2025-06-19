@@ -22,6 +22,7 @@ import { Altair } from "./components/altair/Altair";
 import ControlTray from "./components/control-tray/ControlTray";
 import cn from "classnames";
 import { LiveClientOptions } from "./types";
+import { LiveServerContent } from "@google/genai";
 
 const API_KEY = process.env.REACT_APP_GEMINI_API_KEY as string;
 if (typeof API_KEY !== "string") {
@@ -40,6 +41,8 @@ function AppContent() {
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
   // state to track transcription text
   const [transcriptionText, setTranscriptionText] = useState<string>("");
+  // state to track modelTurn content
+  const [modelTurnText, setModelTurnText] = useState<string>("");
   
   const { client } = useLiveAPIContext();
 
@@ -55,6 +58,47 @@ function AppContent() {
       client.off("transcription", onTranscription);
     };
   }, [client]);
+
+  // Listen for content events (modelTurn)
+  useEffect(() => {
+    const onContent = (data: LiveServerContent) => {
+      if (data.modelTurn && data.modelTurn.parts) {
+        // Extract text from all text parts
+        const textParts = data.modelTurn.parts
+          .filter((part) => part.text && part.text)
+          .map((part) => part.text)
+          .join(" ")
+          .replaceAll(".", ". ")
+          .replaceAll("?", "? ")
+          .replaceAll("!", "! ")
+          .replaceAll("  ", " ")
+          ;
+        
+        if (textParts) {
+          // Accumulate the modelTurn text instead of replacing it
+          setModelTurnText(prev => (prev + textParts));
+          // Clear transcription text when AI response arrives to show the AI response
+          setTranscriptionText("");
+        }
+      }
+    };
+
+    client.on("content", onContent);
+
+    return () => {
+      client.off("content", onContent);
+    };
+  }, [client]);
+
+  // Determine what text to display: transcription takes priority when available, otherwise show AI response
+  const displayText = transcriptionText || modelTurnText;
+  const displayTitle = transcriptionText ? "Live Transcription:" : "AI Response:";
+
+  // Clear function that clears both texts
+  const clearAllText = () => {
+    setTranscriptionText("");
+    setModelTurnText("");
+  };
 
   return (
     <div className="streaming-console">
@@ -79,12 +123,12 @@ function AppContent() {
             zIndex: 1000,
             fontSize: '16px',
             lineHeight: '1.5',
-            display: transcriptionText ? 'block' : 'none'
+            display: displayText ? 'block' : 'none'
           }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px' }}>Live Transcription:</h3>
-            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{transcriptionText}</p>
+            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px' }}>{displayTitle}</h3>
+            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{displayText}</p>
             <button 
-              onClick={() => setTranscriptionText("")}
+              onClick={clearAllText}
               style={{
                 marginTop: '10px',
                 padding: '5px 10px',

@@ -58,9 +58,9 @@ function AltairComponent() {
       realtimeInputConfig: {
         automaticActivityDetection: {
           disabled: false, // default
-          startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_LOW,
-          endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW,
-          // prefixPaddingMs: 20,
+          startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_HIGH,
+          endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_HIGH,
+          prefixPaddingMs: 100,
           silenceDurationMs: 100,
         }
       },
