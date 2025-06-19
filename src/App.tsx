@@ -90,9 +90,11 @@ function AppContent() {
     };
   }, [client]);
 
-  // Determine what text to display: transcription takes priority when available, otherwise show AI response
-  const displayText = transcriptionText || modelTurnText;
-  const displayTitle = transcriptionText ? "Live Transcription:" : "AI Response:";
+  // Determine what text to display: show AI response + transcription when transcribing, otherwise just AI response
+  const displayText = transcriptionText 
+    ? (modelTurnText + (modelTurnText ? "" : "") + transcriptionText).trim()
+    : modelTurnText;
+  const displayTitle = transcriptionText ? "Live Transcription..." : "AI Response:";
 
   // Clear function that clears both texts
   const clearAllText = () => {
@@ -127,7 +129,7 @@ function AppContent() {
           }}>
             <h3 style={{ margin: '0 0 10px 0', fontSize: '18px' }}>{displayTitle}</h3>
             <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{displayText}</p>
-            <button 
+            {/* <button 
               onClick={clearAllText}
               style={{
                 marginTop: '10px',
@@ -140,7 +142,7 @@ function AppContent() {
               }}
             >
               Clear
-            </button>
+            </button> */}
           </div>
           <video
             className={cn("stream", {

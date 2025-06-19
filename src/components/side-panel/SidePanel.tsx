@@ -41,7 +41,7 @@ export default function SidePanel() {
   const [selectedOption, setSelectedOption] = useState<{
     value: string;
     label: string;
-  } | null>(null);
+  } | null>(filterOptions[0]);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   //scroll the log to the bottom when new logs come in
