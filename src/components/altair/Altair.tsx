@@ -125,7 +125,7 @@ Foco de hipersinal em T2 e FLAIR na substância branca periventricular direita, 
 
 Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavras faladas, mantendo o output livre de quaisquer comentários, explicações ou metadados.
 
-O áudio será fornecido em um fluxo contínuo. A cada 1000 milisegundos de áudio processado, retorne o trecho de texto transcrito correspondente até aquele momento. Inicie a transcrição e o envio dos resultados imediatamente com o início do áudio, processando o fluxo de forma contínua, sem aguardar por pausas ou pelo término da transmissão. Concentre-se em fornecer a transcrição com a máxima velocidade, mesmo que as primeiras versões de um trecho sejam refinadas posteriormente com mais contexto.
+O áudio será fornecido em um fluxo contínuo. A cada 100 milisegundos de áudio processado, retorne o trecho de texto transcrito correspondente até aquele momento. Inicie a transcrição e o envio dos resultados imediatamente com o início do áudio, processando o fluxo de forma contínua, sem aguardar por pausas ou pelo término da transmissão. Concentre-se em fornecer a transcrição com a máxima velocidade, mesmo que as primeiras versões de um trecho sejam refinadas posteriormente com mais contexto.
 
 Se o áudio parar ou a conexão for interrompida, finalize a transcrição do último trecho recebido. Seu output deve ser exclusivamente o texto transcrito.`
           },
