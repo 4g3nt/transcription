@@ -94,7 +94,7 @@ function AppContent() {
   const displayText = transcriptionText 
     ? (modelTurnText + (modelTurnText ? "" : "") + transcriptionText).trim()
     : modelTurnText;
-  const displayTitle = transcriptionText ? "Live Transcription..." : "AI Response:";
+  const displayTitle = transcriptionText ? "Live Transcription..." : "Final Transcription:";
 
   // Clear function that clears both texts
   const clearAllText = () => {
