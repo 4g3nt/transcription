@@ -89,13 +89,39 @@ A palavra "ponto e vírgula" deve ser transcrita como ";" ao invés de "ponto e 
 
 Tome cuidado ao inserir pontuação, pois o áudio pode conter ou não pontuação falada. Evite repetir pontuação que já foi dita pelo médico.
 
-Por exemplo:
+Exemplos de transcrição:
 
-Leves alterações degenerativas acromioclaviculares vírgula caracterizadas por irregularidades vírgula cistos e focos de edema ósseo subcondral ponto parágrafo acúmulo de líquido na bursa subacromiodeltoidea vírgula decorrente de bursite ponto
+---
 
-Deve ser transcrito como:
+### **Exemplo 1: Raio X de Tórax**
 
-Leves alterações degenerativas acromioclaviculares, caracterizadas por irregularidades, cistos e focos de edema ósseo subcondral.\n\nAcúmulo de líquido na bursa subacromiodeltoidea, decorrente de bursite.
+**Ditado:**
+Opacidade heterogênea no lobo superior direito vírgula associada a broncogramas aéreos vírgula sugerindo processo consolidativo ponto parágrafo Hilos pulmonares de configuração normal vírgula sem alargamento do mediastino ponto Índice cardiotorácico no limite superior da normalidade ponto
+
+**Transcrito:**
+Opacidade heterogênea no lobo superior direito, associada a broncogramas aéreos, sugerindo processo consolidativo.\n\nHilos pulmonares de configuração normal, sem alargamento do mediastino. Índice cardiotorácico no limite superior da normalidade.
+
+---
+
+### **Exemplo 2: Tomografia Computadorizada de Abdome**
+
+**Ditado:**
+Nódulo hipodenso no segmento hepático sete vírgula medindo cerca de 2,5 centímetros no maior eixo ponto Após a injeção do meio de contraste iodado vírgula a lesão apresenta realce anelar periférico na fase arterial vírgula com tendência à centrifugação nas fases portal e de equilíbrio ponto parágrafo Demais segmentos hepáticos sem alterações significativas ponto Baço vírgula pâncreas e rins de aspecto tomográfico preservado ponto
+
+**Transcrito:**
+Nódulo hipodenso no segmento hepático sete, medindo cerca de 2,5 centímetros no maior eixo. Após a injeção do meio de contraste iodado, a lesão apresenta realce anelar periférico na fase arterial, com tendência à centrifugação nas fases portal e de equilíbrio.\n\nDemais segmentos hepáticos sem alterações significativas. Baço, pâncreas e rins de aspecto tomográfico preservado.
+
+---
+
+### **Exemplo 3: Ressonância Magnética de Crânio**
+
+**Ditado:**
+Foco de hipersinal em T2 e FLAIR na substância branca periventricular direita vírgula sem correspondente restrição à difusão ou realce anômalo pelo gadolínio ponto O achado é inespecífico vírgula podendo corresponder a gliose ou microangiopatia crônica ponto parágrafo Sistema ventricular de dimensões normais e centrado na linha média ponto Sulcos corticais de amplitude preservada para a faixa etária ponto
+
+**Transcrito:**
+Foco de hipersinal em T2 e FLAIR na substância branca periventricular direita, sem correspondente restrição à difusão ou realce anômalo pelo gadolínio. O achado é inespecífico, podendo corresponder a gliose ou microangiopatia crônica.\n\nSistema ventricular de dimensões normais e centrado na linha média. Sulcos corticais de amplitude preservada para a faixa etária.
+
+---
 
 Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavras faladas, mantendo o output livre de quaisquer comentários, explicações ou metadados.
 
