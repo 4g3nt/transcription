@@ -22,7 +22,7 @@ import { Altair } from "./components/altair/Altair";
 import ControlTray from "./components/control-tray/ControlTray";
 import cn from "classnames";
 import { LiveClientOptions } from "./types";
-import { LiveServerContent } from "@google/genai";
+import { LiveServerContent, GoogleGenAI } from "@google/genai";
 
 const API_KEY = process.env.REACT_APP_GEMINI_API_KEY as string;
 if (typeof API_KEY !== "string") {
@@ -45,8 +45,15 @@ function AppContent() {
   const [modelTurnText, setModelTurnText] = useState<string>("");
   // state to track input audio chunks for the current turn
   const [currentTurnInputAudioChunks, setCurrentTurnInputAudioChunks] = useState<string[]>([]);
+  // state to track previous transcription for context
+  const [previousTranscription, setPreviousTranscription] = useState<string>("");
+  // state to track transcription results
+  const [transcriptionResults, setTranscriptionResults] = useState<string>("");
   
   const { client } = useLiveAPIContext();
+
+  // Initialize Gemini AI client for transcription
+  const geminiAI = new GoogleGenAI({ apiKey: API_KEY });
 
   // Override client's sendRealtimeInput to capture input audio
   useEffect(() => {
@@ -138,6 +145,133 @@ function AppContent() {
     return buffer;
   };
 
+  // Function to convert ArrayBuffer to base64
+  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  };
+
+  // Function to transcribe audio using Gemini API
+  const transcribeAudio = async (audioBuffer: ArrayBuffer): Promise<string> => {
+    try {
+      console.log("Starting transcription with Gemini API...");
+      
+      // Convert audio to WAV format and then to base64
+      const wavBuffer = createWavFile(audioBuffer, 16000);
+      const base64Audio = arrayBufferToBase64(wavBuffer);
+      
+      const config = {
+        thinkingConfig: {
+          thinkingBudget: -1,
+        },
+        responseMimeType: 'text/plain',
+        systemInstruction: [
+          {
+            text: `Você é um sistema de transcrição de voz altamente eficiente, especialmente treinado e otimizado para o ambiente de laudos de radiologia. Sua tarefa exclusiva é transcrever o áudio que está sendo transmitido por um médico radiologista.
+
+Seu vocabulário deve priorizar e reconhecer com precisão a terminologia médica, anatômica e radiológica, incluindo, mas não se limitando a:
+
+*   **Termos de imagem:** hipoatenuante, hipodenso, isodenso, hiperdenso, hipoecogênico, hiperecogênico, anecoico, hipointenso, hiperintenso, isointenso, realce (pós-contraste, anelar, periférico, homogêneo, heterogêneo), difusão restrita, sinal em T1, T2, FLAIR, DWI, ADC.
+*   **Anatomia:** parênquima (cerebral, pulmonar, hepático), hilo (pulmonar, renal), mediastino, pleura, peritônio, retroperitônio, córtex, substância branca/cinzenta, corpo caloso, ventrículos, lobos (frontal, parietal, temporal, occipital), giros, sulcos, fígado, baço, pâncreas, rins, adrenais, aorta, veia cava.
+*   **Patologias e achados:** nódulo, massa, lesão (expansiva, infiltrativa, focal), cisto, abscesso, hematoma, fratura, luxação, derrame (pleural, pericárdico, articular), edema, isquemia, infarto, estenose, aneurisma, metástase, neoplasia, carcinoma, adenoma, atelectasia, consolidação, opacidade, calcificação, espessamento.
+*   **Descrições:** bem delimitado, mal delimitado, regular, irregular, espiculado, lobulado, circunscrito, difuso, focal, homogêneo, heterogêneo.
+*   **Abreviações e siglas:** TC (tomografia computadorizada), RM (ressonância magnética), US (ultrassonografia), RX (radiografia), PET-CT, AVC, TEP.
+
+Esteja preparado para transcrever corretamente termos ditados rapidamente, incluindo medidas (ex: "medindo 1,5 por 2,3 centímetros"), e a soletração de nomes ou termos complexos. Reconheça e transcreva corretamente a pontuação ditada, como "vírgula", "ponto", "dois pontos" e "ponto e vírgula".
+
+A palavra "vírgula" deve ser transcrita como "," ao invés de "virgula".
+A palavra "ponto" deve ser transcrita como "." ao invés de "ponto".
+A palavra "parágrafo" deve ser transcrita como "\n\n" ao invés de "parágrafo".
+A palavra "dois pontos" deve ser transcrita como ":" ao invés de "dois pontos".
+A palavra "ponto e vírgula" deve ser transcrita como ";" ao invés de "ponto e vírgula".
+
+Tome cuidado ao inserir pontuação, pois o áudio pode conter ou não pontuação falada. Evite repetir pontuação que já foi dita pelo médico.
+
+Exemplos de transcrição:
+
+---
+
+### **Exemplo 1: Raio X de Tórax**
+
+**Ditado:**
+Opacidade heterogênea no lobo superior direito vírgula associada a broncogramas aéreos vírgula sugerindo processo consolidativo ponto parágrafo Hilos pulmonares de configuração normal vírgula sem alargamento do mediastino ponto Índice cardiotorácico no limite superior da normalidade ponto
+
+**Transcrito:**
+Opacidade heterogênea no lobo superior direito, associada a broncogramas aéreos, sugerindo processo consolidativo.\n\nHilos pulmonares de configuração normal, sem alargamento do mediastino. Índice cardiotorácico no limite superior da normalidade.
+
+---
+
+### **Exemplo 2: Tomografia Computadorizada de Abdome**
+
+**Ditado:**
+Nódulo hipodenso no segmento hepático sete vírgula medindo cerca de 2,5 centímetros no maior eixo ponto Após a injeção do meio de contraste iodado vírgula a lesão apresenta realce anelar periférico na fase arterial vírgula com tendência à centrifugação nas fases portal e de equilíbrio ponto parágrafo Demais segmentos hepáticos sem alterações significativas ponto Baço vírgula pâncreas e rins de aspecto tomográfico preservado ponto
+
+**Transcrito:**
+Nódulo hipodenso no segmento hepático sete, medindo cerca de 2,5 centímetros no maior eixo. Após a injeção do meio de contraste iodado, a lesão apresenta realce anelar periférico na fase arterial, com tendência à centrifugação nas fases portal e de equilíbrio.\n\nDemais segmentos hepáticos sem alterações significativas. Baço, pâncreas e rins de aspecto tomográfico preservado.
+
+---
+
+### **Exemplo 3: Ressonância Magnética de Crânio**
+
+**Ditado:**
+Foco de hipersinal em T2 e FLAIR na substância branca periventricular direita vírgula sem correspondente restrição à difusão ou realce anômalo pelo gadolínio ponto O achado é inespecífico vírgula podendo corresponder a gliose ou microangiopatia crônica ponto parágrafo Sistema ventricular de dimensões normais e centrado na linha média ponto Sulcos corticais de amplitude preservada para a faixa etária ponto
+
+**Transcrito:**
+Foco de hipersinal em T2 e FLAIR na substância branca periventricular direita, sem correspondente restrição à difusão ou realce anômalo pelo gadolínio. O achado é inespecífico, podendo corresponder a gliose ou microangiopatia crônica.\n\nSistema ventricular de dimensões normais e centrado na linha média. Sulcos corticais de amplitude preservada para a faixa etária.
+
+---
+
+Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavras faladas, mantendo o output livre de quaisquer comentários, explicações ou metadados.`,
+          }
+        ],
+      };
+
+      const parts: any[] = [
+        {
+          inlineData: {
+            data: base64Audio,
+            mimeType: 'audio/wav',
+          },
+        },
+      ];
+
+      // Add previous transcription context if available
+      if (previousTranscription) {
+        parts.push({
+          text: `Contexto da transcrição anterior: "${previousTranscription}"\n\nTranscreva o áudio atual:`,
+        });
+      } else {
+        parts.push({
+          text: 'Transcreva o áudio',
+        });
+      }
+
+      const contents = [
+        {
+          role: 'user',
+          parts: parts,
+        },
+      ];
+
+      const response = await geminiAI.models.generateContent({
+        model: 'gemini-2.5-pro',
+        config,
+        contents,
+      });
+
+      const transcription = response.text || JSON.parse(response.text || '')?.text || '';
+      console.log("Transcription result:", transcription);
+      return transcription;
+    } catch (error) {
+      console.error("Error transcribing audio:", error);
+      return "Erro na transcrição";
+    }
+  };
+
   // Function to create blob URL and open in new window
   const openInputAudioInNewWindow = (audioBuffer: ArrayBuffer) => {
     if (audioBuffer.byteLength === 0) return;
@@ -171,17 +305,38 @@ function AppContent() {
 
   // Listen for turn complete events to process collected input audio
   useEffect(() => {
-    const onTurnComplete = () => {
+    const onTurnComplete = async () => {
       console.log("Turn complete! Input audio chunks collected:", currentTurnInputAudioChunks.length);
       
       // Concatenate all input audio chunks from this turn
       if (currentTurnInputAudioChunks.length > 0) {
-        console.log("Opening input audio window with", currentTurnInputAudioChunks.length, "chunks");
+        console.log("Processing input audio with", currentTurnInputAudioChunks.length, "chunks");
         const concatenatedAudio = concatenateBase64AudioChunks(currentTurnInputAudioChunks);
         console.log("Concatenated input audio size:", concatenatedAudio.byteLength, "bytes");
-        openInputAudioInNewWindow(concatenatedAudio);
+        
+        // Transcribe the audio using Gemini API
+        try {
+          // setTranscriptionResults("Transcrevendo...");
+          const transcription = await transcribeAudio(concatenatedAudio);
+          
+          // Concatenate the transcription results
+          setTranscriptionResults(prev => {
+            const newResult = prev ? prev + " " + transcription : transcription;
+            return newResult;
+          });
+          // Update previous transcription for context
+          setPreviousTranscription(transcription);
+          
+          console.log("Transcription completed:", transcription);
+        } catch (error) {
+          console.error("Transcription failed:", error);
+          setTranscriptionResults("Erro na transcrição");
+        }
+        
+        // Also open the audio in a new window for playback
+        // openInputAudioInNewWindow(concatenatedAudio);
       } else {
-        console.log("No input audio chunks to play");
+        console.log("No input audio chunks to process");
       }
       
       // Clear input audio chunks for next turn
@@ -193,7 +348,7 @@ function AppContent() {
     return () => {
       client.off("turncomplete", onTurnComplete);
     };
-  }, [client, currentTurnInputAudioChunks]);
+  }, [client, currentTurnInputAudioChunks, previousTranscription]);
 
   // Listen for transcription events
   useEffect(() => {
@@ -223,22 +378,28 @@ function AppContent() {
         console.log("Audio parts found:", audioParts.length);
         
         // Extract text from all text parts
-        const textParts = data.modelTurn.parts
+        let textParts = data.modelTurn.parts
           .filter((part) => part.text && part.text)
           .map((part) => part.text)
           .join(" ")
           .replaceAll(".", ". ")
           .replaceAll("ponto", ". ")
           .replaceAll("vírgula", ", ")
-          .replaceAll("virgula", ", ")
+          .replaceAll(", ,", ", ")
+          .replaceAll(".parágrafo", ".\n\n")
+          .replaceAll(". parágrafo", ".\n\n")
+          .replaceAll("parágrafo", "\n\n")
+          .replaceAll(", .", ".")
+          .replaceAll("paragrafo", "\n\n")
           .replaceAll("?", "? ")
           .replaceAll("!", "! ")
           .replaceAll("  ", " ")
           ;
-        
+          textParts = textParts.replaceAll("  ", " ");
+
         if (textParts) {
           // Accumulate the modelTurn text instead of replacing it
-          setModelTurnText(prev => (prev + textParts));
+          setModelTurnText(prev => (prev + textParts)?.trim());
           // Clear transcription text when AI response arrives to show the AI response
           setTranscriptionText("");
         }
@@ -252,16 +413,42 @@ function AppContent() {
     };
   }, [client]);
 
-  // Determine what text to display: show AI response + transcription when transcribing, otherwise just AI response
-  const displayText = transcriptionText 
-    ? (modelTurnText + (modelTurnText ? "" : "") + transcriptionText).trim()
-    : modelTurnText;
-  const displayTitle = transcriptionText ? "Live Transcription..." : "Final Transcription:";
+  // Determine what text to display: prioritize transcription results, then live transcription, then AI response
+  let displayText = transcriptionResults 
+    ? transcriptionResults
+    : transcriptionText 
+      ? (modelTurnText + (modelTurnText ? " " : "") + transcriptionText).trim()
+      : modelTurnText;
 
-  // Clear function that clears both texts
+  // Apply additional punctuation replacements for Portuguese medical transcription
+  displayText = displayText
+    .replaceAll(".", ". ")
+    .replaceAll("ponto", ". ")
+    .replaceAll("vírgula", ", ")
+    .replaceAll(", ,", ", ")
+    .replaceAll(".parágrafo", ".\n\n")
+    .replaceAll(". parágrafo", ".\n\n")
+    .replaceAll("parágrafo", "\n\n")
+    .replaceAll(", .", ".")
+    .replaceAll("paragrafo", "\n\n")
+    .replaceAll("?", "? ")
+    .replaceAll("!", "! ")
+    .replaceAll("  ", " ");
+  
+  displayText = displayText.replaceAll("  ", " ")?.trim();
+
+  const displayTitle = transcriptionResults 
+    ? "Transcrição Final:"
+    : transcriptionText 
+      ? "Transcrição em Tempo Real..."
+      : "Refinando...";
+
+  // Clear function that clears all texts
   const clearAllText = () => {
     setTranscriptionText("");
     setModelTurnText("");
+    setTranscriptionResults("");
+    setPreviousTranscription("");
   };
 
   return (
