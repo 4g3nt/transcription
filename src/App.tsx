@@ -20,6 +20,7 @@ import { LiveAPIProvider, useLiveAPIContext } from "./contexts/LiveAPIContext";
 import SidePanel from "./components/side-panel/SidePanel";
 import { Altair } from "./components/altair/Altair";
 import ControlTray from "./components/control-tray/ControlTray";
+import Editor from "./components/editor/Editor";
 import cn from "classnames";
 import { LiveClientOptions } from "./types";
 import { LiveServerContent, GoogleGenAI } from "@google/genai";
@@ -32,6 +33,12 @@ if (typeof API_KEY !== "string") {
 const apiOptions: LiveClientOptions = {
   apiKey: API_KEY,
 };
+
+interface TranscriptionTurn {
+  id: number;
+  text: string;
+  status: 'live' | 'interim' | 'final';
+}
 
 function AppContent() {
   // this video reference is used for displaying the active stream, whether that is the webcam or screen capture
@@ -49,6 +56,9 @@ function AppContent() {
   const [previousTranscription, setPreviousTranscription] = useState<string>("");
   // state to track transcription results
   const [transcriptionResults, setTranscriptionResults] = useState<string>("");
+
+  const [turns, setTurns] = useState<TranscriptionTurn[]>([]);
+  const turnCounter = useRef(0);
   
   const { client } = useLiveAPIContext();
 
@@ -156,18 +166,15 @@ function AppContent() {
   };
 
   // Function to transcribe audio using Gemini API
-  const transcribeAudio = async (audioBuffer: ArrayBuffer): Promise<string> => {
+  const transcribeAudio = async (audioBuffer: ArrayBuffer, turnId: number): Promise<string> => {
     try {
-      console.log("Starting transcription with Gemini API...");
+      console.log(`Starting transcription for turn ${turnId} with Gemini API...`);
       
       // Convert audio to WAV format and then to base64
       const wavBuffer = createWavFile(audioBuffer, 16000);
       const base64Audio = arrayBufferToBase64(wavBuffer);
       
       const config = {
-        thinkingConfig: {
-          thinkingBudget: -1,
-        },
         responseMimeType: 'text/plain',
         systemInstruction: [
           {
@@ -263,11 +270,51 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
         contents,
       });
 
-      const transcription = response.text || JSON.parse(response.text || '')?.text || '';
-      console.log("Transcription result:", transcription);
+      let transcription = "";
+      // The API can return an empty response.text if the audio is silent.
+      // We need to handle this gracefully to avoid JSON.parse errors on empty strings.
+      if (response && response.text) {
+          try {
+              // Some models might return a JSON string with a 'text' property.
+              const parsed = JSON.parse(response.text);
+              transcription = parsed.text || response.text;
+          } catch (e) {
+              // If it's not valid JSON, it's a plain string.
+              transcription = response.text;
+          }
+      }
+
+      console.log(`Transcription result for turn ${turnId}:`, transcription);
+
+      // If the transcription is not empty, update the turn.
+      // Otherwise, keep the interim text.
+      if (transcription) {
+          setTurns(prevTurns =>
+            prevTurns.map(turn =>
+              turn.id === turnId ? { ...turn, text: transcription, status: 'final' } : turn
+            )
+          );
+      } else {
+          // If the final transcription is empty (e.g., silence), 
+          // we can just finalize the turn without changing the text,
+          // preserving the interim transcription.
+          console.warn(`Received empty transcription for turn ${turnId}. Finalizing turn with interim text.`);
+          setTurns(prevTurns =>
+            prevTurns.map(turn =>
+              turn.id === turnId ? { ...turn, status: 'final' } : turn
+            )
+          );
+      }
+
       return transcription;
     } catch (error) {
-      console.error("Error transcribing audio:", error);
+      console.error(`Error transcribing audio for turn ${turnId}:`, error);
+      // Optionally update turn status to 'error'
+      setTurns(prevTurns =>
+        prevTurns.map(turn =>
+          turn.id === turnId ? { ...turn, text: "Erro na transcrição.", status: 'final' } : turn
+        )
+      );
       return "Erro na transcrição";
     }
   };
@@ -308,39 +355,37 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     const onTurnComplete = async () => {
       console.log("Turn complete! Input audio chunks collected:", currentTurnInputAudioChunks.length);
       
+      const completedTurn = turns.find(t => t.status === 'live');
+
       // Concatenate all input audio chunks from this turn
-      if (currentTurnInputAudioChunks.length > 0) {
-        console.log("Processing input audio with", currentTurnInputAudioChunks.length, "chunks");
+      if (currentTurnInputAudioChunks.length > 0 && completedTurn) {
+        console.log(`Processing input audio for turn ${completedTurn.id} with`, currentTurnInputAudioChunks.length, "chunks");
+        
+        // Mark the turn as 'interim' while waiting for final transcription
+        setTurns(prevTurns =>
+          prevTurns.map(turn =>
+            turn.id === completedTurn.id ? { ...turn, status: 'interim' } : turn
+          )
+        );
+
         const concatenatedAudio = concatenateBase64AudioChunks(currentTurnInputAudioChunks);
         console.log("Concatenated input audio size:", concatenatedAudio.byteLength, "bytes");
         
-        // Transcribe the audio using Gemini API
+        // Transcribe the audio using Gemini API for the specific turn
         try {
-          // setTranscriptionResults("Transcrevendo...");
-          const transcription = await transcribeAudio(concatenatedAudio);
-          
-          // Concatenate the transcription results
-          setTranscriptionResults(prev => {
-            const newResult = prev ? prev + " " + transcription : transcription;
-            return newResult;
-          });
-          // Update previous transcription for context
-          setPreviousTranscription(transcription);
-          
-          console.log("Transcription completed:", transcription);
+          await transcribeAudio(concatenatedAudio, completedTurn.id);
+          console.log(`Transcription request sent for turn ${completedTurn.id}`);
         } catch (error) {
-          console.error("Transcription failed:", error);
-          setTranscriptionResults("Erro na transcrição");
+          console.error(`Transcription failed for turn ${completedTurn.id}:`, error);
         }
         
-        // Also open the audio in a new window for playback
-        // openInputAudioInNewWindow(concatenatedAudio);
       } else {
-        console.log("No input audio chunks to process");
+        console.log("No input audio chunks or live turn to process");
       }
       
-      // Clear input audio chunks for next turn
+      // Clear input audio chunks and transcription text for next turn
       setCurrentTurnInputAudioChunks([]);
+      setTranscriptionText("");
     };
 
     client.on("turncomplete", onTurnComplete);
@@ -348,12 +393,34 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     return () => {
       client.off("turncomplete", onTurnComplete);
     };
-  }, [client, currentTurnInputAudioChunks, previousTranscription]);
+  }, [client, currentTurnInputAudioChunks, turns]);
 
   // Listen for transcription events
   useEffect(() => {
     const onTranscription = (text: string) => {
-      setTranscriptionText(prev => (prev + text).trim());
+      if (!text) return;
+
+      setTurns(prevTurns => {
+        const liveTurn = prevTurns.find(t => t.status === 'live');
+
+        if (liveTurn) {
+          // If a live turn exists, append text to it
+          return prevTurns.map(turn =>
+            turn.id === liveTurn.id
+              ? { ...turn, text: turn.text + text }
+              : turn
+          );
+        } else {
+          // If no live turn, create a new one
+          turnCounter.current += 1;
+          const newTurn: TranscriptionTurn = {
+            id: turnCounter.current,
+            text: text,
+            status: 'live',
+          };
+          return [...prevTurns, newTurn];
+        }
+      });
     };
 
     client.on("transcription", onTranscription);
@@ -371,37 +438,28 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
       if (data.modelTurn && data.modelTurn.parts) {
         console.log("ModelTurn parts:", data.modelTurn.parts);
         
-        // Check for audio parts
-        const audioParts = data.modelTurn.parts.filter(part => 
-          part.inlineData && part.inlineData.mimeType?.startsWith("audio/")
-        );
-        console.log("Audio parts found:", audioParts.length);
-        
-        // Extract text from all text parts
-        let textParts = data.modelTurn.parts
-          .filter((part) => part.text && part.text)
+        // Extract text from all text parts for refinement
+        const refinedText = data.modelTurn.parts
+          .filter((part) => part.text)
           .map((part) => part.text)
-          .join(" ")
-          .replaceAll(".", ". ")
-          .replaceAll("ponto", ". ")
-          .replaceAll("vírgula", ", ")
-          .replaceAll(", ,", ", ")
-          .replaceAll(".parágrafo", ".\n\n")
-          .replaceAll(". parágrafo", ".\n\n")
-          .replaceAll("parágrafo", "\n\n")
-          .replaceAll(", .", ".")
-          .replaceAll("paragrafo", "\n\n")
-          .replaceAll("?", "? ")
-          .replaceAll("!", "! ")
-          .replaceAll("  ", " ")
-          ;
-          textParts = textParts.replaceAll("  ", " ");
+          .join(" ");
 
-        if (textParts) {
-          // Accumulate the modelTurn text instead of replacing it
-          setModelTurnText(prev => (prev + textParts)?.trim());
-          // Clear transcription text when AI response arrives to show the AI response
-          setTranscriptionText("");
+        if (refinedText) {
+          // Find the latest 'interim' turn and update its text as a refinement
+          setTurns(prevTurns => {
+            // Find the last turn that was marked as 'interim'
+            const lastInterimTurnIndex = prevTurns.findLastIndex(t => t.status === 'interim');
+            
+            if (lastInterimTurnIndex > -1) {
+              const newTurns = [...prevTurns];
+              newTurns[lastInterimTurnIndex] = {
+                ...newTurns[lastInterimTurnIndex],
+                text: refinedText,
+              };
+              return newTurns;
+            }
+            return prevTurns;
+          });
         }
       }
     };
@@ -413,15 +471,10 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     };
   }, [client]);
 
-  // Determine what text to display: prioritize transcription results, then live transcription, then AI response
-  let displayText = transcriptionResults 
-    ? transcriptionResults
-    : transcriptionText 
-      ? (modelTurnText + (modelTurnText ? " " : "") + transcriptionText).trim()
-      : modelTurnText;
-
-  // Apply additional punctuation replacements for Portuguese medical transcription
-  displayText = displayText
+  // Combine turns into a single string for display, applying formatting rules
+  const displayText = turns
+    .map(turn => turn.text)
+    .join(' ')
     .replaceAll(".", ". ")
     .replaceAll("ponto", ". ")
     .replaceAll("vírgula", ", ")
@@ -433,18 +486,13 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     .replaceAll("paragrafo", "\n\n")
     .replaceAll("?", "? ")
     .replaceAll("!", "! ")
-    .replaceAll("  ", " ");
-  
-  displayText = displayText.replaceAll("  ", " ")?.trim();
-
-  const displayTitle = transcriptionResults 
-    ? "Transcrição Final:"
-    : transcriptionText 
-      ? "Transcrição em Tempo Real..."
-      : "Refinando...";
+    .replaceAll("  ", " ")
+    .trim();
 
   // Clear function that clears all texts
   const clearAllText = () => {
+    setTurns([]);
+    turnCounter.current = 0;
     setTranscriptionText("");
     setModelTurnText("");
     setTranscriptionResults("");
@@ -458,41 +506,11 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
         <div className="main-app-area">
           {/* APP goes here */}
           <Altair />
-          {/* Transcription display */}
-          <div className="transcription-display" style={{
-            position: 'fixed',
-            top: '50%',
-            left: '65%',
-            transform: 'translate(-50%, -65%)',
-            background: 'rgba(0, 0, 0, 0.8)',
-            color: 'white',
-            padding: '20px',
-            borderRadius: '10px',
-            maxWidth: '600px',
-            maxHeight: '400px',
-            overflow: 'auto',
-            zIndex: 1000,
-            fontSize: '16px',
-            lineHeight: '1.5',
-            display: displayText ? 'block' : 'none'
-          }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px' }}>{displayTitle}</h3>
-            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{displayText}</p>
-            <button 
-              onClick={clearAllText}
-              style={{
-                marginTop: '10px',
-                padding: '5px 10px',
-                background: '#666',
-                color: 'white',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer'
-              }}
-            >
-              Clear
-            </button>
-          </div>
+          {/* Editor Component */}
+          <Editor 
+            transcriptionText={displayText}
+            onClear={clearAllText}
+          />
           <video
             className={cn("stream", {
               hidden: !videoRef.current || !videoStream,
