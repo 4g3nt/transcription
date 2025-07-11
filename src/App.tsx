@@ -19,6 +19,7 @@ import "./App.scss";
 import { LiveAPIProvider, useLiveAPIContext } from "./contexts/LiveAPIContext";
 import SidePanel from "./components/side-panel/SidePanel";
 import { Altair } from "./components/altair/Altair";
+import { Editor } from "./components/editor/Editor";
 import ControlTray from "./components/control-tray/ControlTray";
 import cn from "classnames";
 import { LiveClientOptions } from "./types";
@@ -319,9 +320,9 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           // setTranscriptionResults("Transcrevendo...");
           const transcription = await transcribeAudio(concatenatedAudio);
           
-          // Concatenate the transcription results
+          // Concatenate the transcription results with proper formatting
           setTranscriptionResults(prev => {
-            const newResult = prev ? prev + " " + transcription : transcription;
+            const newResult = prev ? prev + "\n\n" + transcription : transcription;
             return newResult;
           });
           // Update previous transcription for context
@@ -353,6 +354,14 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
   // Listen for transcription events
   useEffect(() => {
     const onTranscription = (text: string) => {
+      // Clear previous model text when new transcription starts
+      setModelTurnText(prev => {
+        if (prev && text) {
+          return "";
+        }
+        return prev;
+      });
+      
       setTranscriptionText(prev => (prev + text).trim());
     };
 
@@ -398,10 +407,10 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           textParts = textParts.replaceAll("  ", " ");
 
         if (textParts) {
-          // Accumulate the modelTurn text instead of replacing it
-          setModelTurnText(prev => (prev + textParts)?.trim());
           // Clear transcription text when AI response arrives to show the AI response
           setTranscriptionText("");
+          // Accumulate the modelTurn text instead of replacing it
+          setModelTurnText(prev => (prev + textParts)?.trim());
         }
       }
     };
@@ -413,12 +422,33 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     };
   }, [client]);
 
-  // Determine what text to display: prioritize transcription results, then live transcription, then AI response
-  let displayText = transcriptionResults 
-    ? transcriptionResults
-    : transcriptionText 
-      ? (modelTurnText + (modelTurnText ? " " : "") + transcriptionText).trim()
-      : modelTurnText;
+  // Clear function that clears all texts
+  const clearAllText = () => {
+    setTranscriptionText("");
+    setModelTurnText("");
+    setTranscriptionResults("");
+    setPreviousTranscription("");
+  };
+
+  // Check if any transcription text is available to show the editor
+  const hasTranscriptionText = transcriptionText || modelTurnText || transcriptionResults;
+
+  // Determine what text to display: combine accumulated results with current live transcription
+  const currentTurnText = transcriptionText 
+    ? (modelTurnText + (modelTurnText ? " " : "") + transcriptionText).trim()
+    : modelTurnText;
+  
+  let displayText = "";
+  if (transcriptionResults && currentTurnText) {
+    // Show both accumulated results and current turn
+    displayText = transcriptionResults + "\n\n" + currentTurnText;
+  } else if (transcriptionResults) {
+    // Only accumulated results
+    displayText = transcriptionResults;
+  } else if (currentTurnText) {
+    // Only current turn
+    displayText = currentTurnText;
+  }
 
   // Apply additional punctuation replacements for Portuguese medical transcription
   displayText = displayText
@@ -437,19 +467,19 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
   
   displayText = displayText.replaceAll("  ", " ")?.trim();
 
-  const displayTitle = transcriptionResults 
-    ? "Transcrição Final:"
-    : transcriptionText 
-      ? "Transcrição em Tempo Real..."
-      : "Refinando...";
-
-  // Clear function that clears all texts
-  const clearAllText = () => {
-    setTranscriptionText("");
-    setModelTurnText("");
-    setTranscriptionResults("");
-    setPreviousTranscription("");
-  };
+  const displayTitle = (() => {
+    if (transcriptionResults && currentTurnText) {
+      return "Transcrições Acumuladas + Atual:";
+    } else if (transcriptionResults) {
+      return "Transcrições Finalizadas:";
+    } else if (transcriptionText) {
+      return "Transcrição em Tempo Real...";
+    } else if (modelTurnText) {
+      return "Refinando...";
+    } else {
+      return "Aguardando...";
+    }
+  })();
 
   return (
     <div className="streaming-console">
@@ -458,18 +488,34 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
         <div className="main-app-area">
           {/* APP goes here */}
           <Altair />
-          {/* Transcription display */}
+          {/* Editor for transcription */}
+          <div className="editor-wrapper" style={{
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            width: '400px',
+            height: '500px',
+            zIndex: 1000,
+            display: hasTranscriptionText ? 'block' : 'none'
+          }}>
+            <Editor
+              transcriptionText={transcriptionText}
+              modelTurnText={modelTurnText}
+              transcriptionResults={transcriptionResults}
+              onClear={clearAllText}
+            />
+          </div>
+          {/* Original transcription display */}
           <div className="transcription-display" style={{
             position: 'fixed',
-            top: '50%',
-            left: '65%',
-            transform: 'translate(-50%, -65%)',
+            top: '20px',
+            right: '440px',
             background: 'rgba(0, 0, 0, 0.8)',
             color: 'white',
             padding: '20px',
             borderRadius: '10px',
             maxWidth: '600px',
-            maxHeight: '400px',
+            maxHeight: '500px',
             overflow: 'auto',
             zIndex: 1000,
             fontSize: '16px',
