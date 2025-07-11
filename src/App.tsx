@@ -327,6 +327,9 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           });
           // Update previous transcription for context
           setPreviousTranscription(transcription);
+          // Clear model turn text and transcription text since we now have the final transcription
+          setModelTurnText("");
+          setTranscriptionText("");
           
           console.log("Transcription completed:", transcription);
         } catch (error) {
