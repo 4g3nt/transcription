@@ -496,7 +496,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
             position: 'fixed',
             top: '20px',
             right: '20px',
-            width: '400px',
+            width: '500px',
             height: '500px',
             zIndex: 1000,
             display: hasTranscriptionText ? 'block' : 'none'
@@ -512,12 +512,12 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           <div className="transcription-display" style={{
             position: 'fixed',
             top: '20px',
-            right: '440px',
+            right: '540px',
             background: 'rgba(0, 0, 0, 0.8)',
             color: 'white',
             padding: '20px',
             borderRadius: '10px',
-            maxWidth: '600px',
+            maxWidth: '500px',
             maxHeight: '500px',
             overflow: 'auto',
             zIndex: 1000,
