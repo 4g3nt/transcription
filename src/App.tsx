@@ -504,62 +504,57 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
 
   return (
     <div className="streaming-console">
-      <SidePanel />
+      {/* <SidePanel /> */}
       <main>
         <div className="main-app-area">
           {/* APP goes here */}
           <Altair />
-          {/* Editor for transcription */}
-          <div className="editor-wrapper" style={{
-            position: 'fixed',
-            top: '20px',
-            right: '20px',
-            width: '500px',
-            height: '500px',
-            display: hasTranscriptionText ? 'block' : 'none'
-          }}>
-            <Editor
-              transcriptionText={transcriptionText}
-              modelTurnText={modelTurnText}
-              transcriptionResults={transcriptionResults}
-              onClear={clearAllText}
-            />
-          </div>
-          {/* Original transcription display */}
-          <div className="transcription-display" style={{
-            position: 'fixed',
-            top: '20px',
-            right: '540px',
-            background: 'rgba(0, 0, 0, 0.8)',
-            color: 'white',
-            padding: '20px',
-            borderRadius: '10px',
-            maxWidth: '500px',
-            maxHeight: '500px',
-            overflow: 'auto',
-            fontSize: '16px',
-            lineHeight: '1.5',
-            display: displayText ? 'block' : 'none'
-          }}>
-            <h3 style={{ margin: '0 0 10px 0', fontSize: '18px' }}>{displayTitle}</h3>
-            <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{displayText}</p>
-            <button 
-              onClick={clearAllText}
+          {/* Editor and Transcription Log Container */}
+          <div
+            style={{
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: '500px',
+              flexDirection: 'column',
+              gap: '10px',
+            }}
+          >
+            {/* Editor for transcription */}
+            <div
+              className="editor-wrapper"
               style={{
-                marginTop: '10px',
-                padding: '5px 10px',
-                background: '#666',
-                color: 'white',
-                border: 'none',
-                borderRadius: '5px',
-                cursor: 'pointer'
+                height: '500px',
               }}
             >
-              Clear
-            </button>
+              <Editor
+                transcriptionText={transcriptionText}
+                modelTurnText={modelTurnText}
+                transcriptionResults={transcriptionResults}
+                onClear={clearAllText}
+              />
+            </div>
+            {/* Original transcription display as a log */}
+            <div
+              className="transcription-display"
+              style={{
+                background: 'rgba(0, 0, 0, 0.8)',
+                color: 'white',
+                padding: '20px',
+                borderRadius: '10px',
+                maxHeight: '140px',
+                overflow: 'auto',
+                fontSize: '14px',
+                lineHeight: '1.4',
+                display: displayText ? 'block' : 'none',
+              }}
+            >
+              <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{displayText}</p>
+            </div>
           </div>
           <video
-            className={cn("stream", {
+            className={cn('stream', {
               hidden: !videoRef.current || !videoStream,
             })}
             ref={videoRef}
