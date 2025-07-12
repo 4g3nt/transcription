@@ -35,48 +35,126 @@ function EditorComponent({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [editorText, setEditorText] = useState<string>("");
   const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isTyping, setIsTyping] = useState<boolean>(false);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Determine what text to display: combine accumulated results with current live transcription
-  const currentTurnText = transcriptionText 
-    ? (modelTurnText + (modelTurnText ? " " : "") + transcriptionText).trim()
-    : modelTurnText;
-  
-  let displayText = "";
-  if (transcriptionResults && currentTurnText) {
-    // Show both accumulated results and current turn
-    displayText = transcriptionResults + "\n\n" + currentTurnText;
-  } else if (transcriptionResults) {
-    // Only accumulated results
-    displayText = transcriptionResults;
-  } else if (currentTurnText) {
-    // Only current turn
-    displayText = currentTurnText;
-  }
+  const prevTranscriptionTextRef = useRef<string>("");
+  const prevModelTurnTextRef = useRef<string>("");
+  const prevTranscriptionResultsRef = useRef<string>("");
 
-  // Apply Portuguese medical transcription formatting
-  const formattedText = displayText
-    .replaceAll(".", ". ")
-    .replaceAll("ponto", ". ")
-    .replaceAll("vírgula", ", ")
-    .replaceAll(", ,", ", ")
-    .replaceAll(".parágrafo", ".\n\n")
-    .replaceAll(". parágrafo", ".\n\n")
-    .replaceAll("parágrafo", "\n\n")
-    .replaceAll(", .", ".")
-    .replaceAll("paragrafo", "\n\n")
-    .replaceAll("?", "? ")
-    .replaceAll("!", "! ")
-    .replaceAll("  ", " ")
-    .trim();
-
-  // Update editor text when transcription changes (only if not actively editing)
+  // This effect handles the insertion of new transcription text.
   useEffect(() => {
-    if (!isEditing && formattedText !== editorText) {
-      setEditorText(formattedText);
+    if (isTyping || !textareaRef.current) {
+      return;
     }
-  }, [formattedText, isEditing, editorText]);
 
-  // Auto-scroll to bottom when new text is added
+    const textarea = textareaRef.current;
+    let { selectionStart, selectionEnd } = textarea;
+
+    let textToInsert = "";
+    let replaceFrom = -1;
+    let replaceTo = -1;
+
+    const lastModelTurnText = prevModelTurnTextRef.current;
+
+    // Determine if a turn has just completed. This is the most complex case.
+    const turnCompleted =
+      modelTurnText.length === 0 &&
+      lastModelTurnText.length > 0 &&
+      transcriptionResults.length > prevTranscriptionResultsRef.current.length;
+
+    if (turnCompleted) {
+      // Case 3: Turn completed. Replace the previous model turn text with the new final text.
+      const lastOccurrenceIndex = editorText.lastIndexOf(lastModelTurnText);
+
+      if (lastOccurrenceIndex !== -1) {
+        // Find the new final text chunk.
+        const newFinalText = transcriptionResults.substring(
+          prevTranscriptionResultsRef.current.length
+        ).trim();
+
+        textToInsert = newFinalText;
+        replaceFrom = lastOccurrenceIndex;
+        replaceTo = lastOccurrenceIndex + lastModelTurnText.length;
+      }
+    } else if (modelTurnText.length > lastModelTurnText.length) {
+      // Case 2: New model turn text, replaces live transcription.
+      textToInsert = modelTurnText.substring(lastModelTurnText.length); // Insert only the new portion
+      const lastLiveText = prevTranscriptionTextRef.current;
+      
+      if (lastLiveText.length > 0) {
+        // Find and replace the live transcription text
+        const lastOccurrenceIndex = editorText.lastIndexOf(lastLiveText);
+        if (lastOccurrenceIndex !== -1) {
+          replaceFrom = lastOccurrenceIndex;
+          replaceTo = lastOccurrenceIndex + lastLiveText.length;
+        } else {
+          // If we can't find the live text, just insert at cursor
+          replaceFrom = selectionStart;
+          replaceTo = selectionEnd;
+        }
+      } else {
+        // No live text to replace, just insert at cursor
+        replaceFrom = selectionStart;
+        replaceTo = selectionEnd;
+      }
+    } else if (
+      transcriptionText.length < prevTranscriptionTextRef.current.length
+    ) {
+      // Case 2b: Live transcription was cleared (transcriptionText became shorter/empty)
+      // This happens when model turn arrives and clears the live transcription
+      const clearedLiveText = prevTranscriptionTextRef.current;
+      if (clearedLiveText.length > 0) {
+        const lastOccurrenceIndex = editorText.lastIndexOf(clearedLiveText);
+        if (lastOccurrenceIndex !== -1) {
+          // Remove the cleared live transcription
+          textToInsert = "";
+          replaceFrom = lastOccurrenceIndex;
+          replaceTo = lastOccurrenceIndex + clearedLiveText.length;
+        }
+      }
+    } else if (
+      transcriptionText.length > prevTranscriptionTextRef.current.length
+    ) {
+      // Case 1: New live transcription. Append at the cursor.
+      textToInsert = transcriptionText.substring(
+        prevTranscriptionTextRef.current.length
+      );
+      replaceFrom = selectionStart;
+      replaceTo = selectionEnd;
+    }
+
+    if (replaceFrom !== -1) {
+      const newEditorText =
+        editorText.substring(0, replaceFrom) +
+        textToInsert +
+        editorText.substring(replaceTo);
+
+      setEditorText(newEditorText);
+      onTextChange?.(newEditorText);
+
+      const newCursorPosition = replaceFrom + textToInsert.length;
+      setTimeout(() => {
+        textarea.selectionStart = newCursorPosition;
+        textarea.selectionEnd = newCursorPosition;
+        textarea.scrollTop = textarea.scrollHeight;
+      }, 0);
+    }
+
+    // Update refs for the next render.
+    prevTranscriptionTextRef.current = transcriptionText;
+    prevModelTurnTextRef.current = modelTurnText;
+    prevTranscriptionResultsRef.current = transcriptionResults;
+  }, [
+    transcriptionText,
+    modelTurnText,
+    transcriptionResults,
+    isTyping,
+    editorText,
+    onTextChange,
+  ]);
+
+  // Auto-scroll to bottom when new text is added and not editing
   useEffect(() => {
     if (textareaRef.current && !isEditing) {
       textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
@@ -87,6 +165,15 @@ function EditorComponent({
     const newText = e.target.value;
     setEditorText(newText);
     onTextChange?.(newText);
+
+    // User is typing, so pause transcription insertion
+    setIsTyping(true);
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+    }, 1000); // 1-second timeout to resume transcription
   };
 
   const handleFocus = () => {
@@ -124,6 +211,10 @@ function EditorComponent({
   };
 
   const getStatusText = () => {
+    const currentTurnText = transcriptionText
+      ? (modelTurnText + (modelTurnText ? " " : "") + transcriptionText).trim()
+      : modelTurnText;
+
     if (transcriptionResults && currentTurnText) {
       return "Transcrevendo...";
     } else if (transcriptionResults) {
@@ -138,6 +229,10 @@ function EditorComponent({
   };
 
   const getStatusColor = () => {
+    const currentTurnText = transcriptionText
+      ? (modelTurnText + (modelTurnText ? " " : "") + transcriptionText).trim()
+      : modelTurnText;
+      
     if (transcriptionResults && currentTurnText) {
       return "#9C27B0"; // Purple - Combined state
     } else if (transcriptionResults) {
