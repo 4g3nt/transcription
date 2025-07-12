@@ -38,6 +38,7 @@ function AppContent() {
   // this video reference is used for displaying the active stream, whether that is the webcam or screen capture
   // feel free to style as you see fit
   const videoRef = useRef<HTMLVideoElement>(null);
+  const transcriptionDisplayRef = useRef<HTMLDivElement>(null);
   // either the screen capture, the video or null, if null we hide it
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
   // state to track transcription text
@@ -488,6 +489,13 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
   
   displayText = displayText.replaceAll("  ", " ")?.trim();
 
+  useEffect(() => {
+    if (transcriptionDisplayRef.current) {
+      transcriptionDisplayRef.current.scrollTop =
+        transcriptionDisplayRef.current.scrollHeight;
+    }
+  }, [displayText]);
+
   const displayTitle = (() => {
     if (transcriptionResults && currentTurnText) {
       return "Transcrevendo...";
@@ -537,13 +545,14 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
             </div>
             {/* Original transcription display as a log */}
             <div
+              ref={transcriptionDisplayRef}
               className="transcription-display"
               style={{
                 background: 'rgba(0, 0, 0, 0.8)',
                 color: 'white',
                 padding: '20px',
                 borderRadius: '10px',
-                maxHeight: '140px',
+                maxHeight: '80px',
                 overflow: 'auto',
                 fontSize: '14px',
                 lineHeight: '1.4',

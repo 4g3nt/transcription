@@ -16,6 +16,8 @@
 
 import { useEffect, useRef, useState, memo } from "react";
 import "./Editor.scss";
+import { useLiveAPIContext } from "../../contexts/LiveAPIContext";
+import cn from "classnames";
 
 interface EditorProps {
   transcriptionText: string;
@@ -32,6 +34,7 @@ function EditorComponent({
   onClear,
   onTextChange,
 }: EditorProps) {
+  const { connected, connect, disconnect } = useLiveAPIContext();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [editorText, setEditorText] = useState<string>("");
   const [isEditing, setIsEditing] = useState<boolean>(false);
@@ -49,7 +52,9 @@ function EditorComponent({
     }
 
     const textarea = textareaRef.current;
-    let { selectionStart, selectionEnd } = textarea;
+    const { selectionStart, selectionEnd } = textarea;
+    const isCursorAtEnd =
+      selectionStart === selectionEnd && selectionStart === textarea.value.length;
 
     let textToInsert = "";
     let replaceFrom = -1;
@@ -150,7 +155,9 @@ function EditorComponent({
       setTimeout(() => {
         textarea.selectionStart = newCursorPosition;
         textarea.selectionEnd = newCursorPosition;
-        textarea.scrollTop = textarea.scrollHeight;
+        if (isCursorAtEnd) {
+          textarea.scrollTop = textarea.scrollHeight;
+        }
       }, 0);
     }
 
@@ -166,13 +173,6 @@ function EditorComponent({
     editorText,
     onTextChange,
   ]);
-
-  // Auto-scroll to bottom when new text is added and not editing
-  useEffect(() => {
-    if (textareaRef.current && !isEditing) {
-      textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
-    }
-  }, [editorText, isEditing]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const newText = e.target.value;
@@ -246,6 +246,15 @@ function EditorComponent({
     <div className="editor-container">
       <div className="editor-header">
         <div className="editor-controls">
+          <button
+            onClick={connected ? disconnect : connect}
+            className={cn("editor-button", "connect-toggle", { connected })}
+            title={connected ? "Stop recording" : "Start recording"}
+          >
+            <span className="material-symbols-outlined filled">
+              {connected ? "stop" : "fiber_manual_record"}
+            </span>
+          </button>
           <button 
             onClick={handleCopyToClipboard}
             className="editor-button"
