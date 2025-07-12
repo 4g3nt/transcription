@@ -40,6 +40,7 @@ function AppContent() {
   // feel free to style as you see fit
   const videoRef = useRef<HTMLVideoElement>(null);
   const transcriptionDisplayRef = useRef<HTMLDivElement>(null);
+  const transcriptionLogRef = useRef<HTMLDivElement>(null);
   // either the screen capture, the video or null, if null we hide it
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
   // state to track transcription text
@@ -534,6 +535,13 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     }
   }, [displayText]);
 
+  // Auto-scroll transcription log when new entries are added
+  useEffect(() => {
+    if (transcriptionLogRef.current) {
+      transcriptionLogRef.current.scrollTop = transcriptionLogRef.current.scrollHeight;
+    }
+  }, [transcriptionLog]);
+
   const displayTitle = (() => {
     if (transcriptionResults && currentTurnText) {
       return "Transcrevendo...";
@@ -619,7 +627,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                   <div className="transcription-log-header">
                     <span>Transcrições ({transcriptionLog.length})</span>
                   </div>
-                  <div className="transcription-log-content">
+                  <div className="transcription-log-content" ref={transcriptionLogRef}>
                     {transcriptionLog.length === 0 ? (
                       <div className="transcription-log-empty">
                         Nenhuma transcrição ainda
