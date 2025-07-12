@@ -420,6 +420,7 @@ function EditorComponent({
 
   const handleClear = () => {
     setEditorText("");
+    onTextChange?.("");
     onClear();
   };
 
