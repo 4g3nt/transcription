@@ -595,7 +595,8 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                 overflow: 'auto',
                 fontSize: '14px',
                 lineHeight: '1.4',
-                display: displayText ? 'block' : 'none',
+                // display: displayText ? 'block' : 'none',
+                display: 'none',
               }}
             >
               <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{displayText}</p>
