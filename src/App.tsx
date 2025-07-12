@@ -67,6 +67,8 @@ function AppContent() {
     timestamp: Date;
     disliked?: boolean;
   }>>([]);
+  // Voice activity detection threshold (0.005 = very sensitive, 0.05 = less sensitive)
+  const [vadThreshold, setVadThreshold] = useState<number>(0.01);
   
   const { client, connected } = useLiveAPIContext();
 
@@ -173,13 +175,98 @@ function AppContent() {
     return btoa(binary);
   };
 
+  // Function to detect voice activity and trim silence from audio buffer
+  const trimSilenceFromAudio = (audioBuffer: ArrayBuffer, threshold: number = 0.01, sampleRate: number = 16000): ArrayBuffer => {
+    const int16Array = new Int16Array(audioBuffer);
+    const samples = int16Array.length;
+    
+    if (samples === 0) return audioBuffer;
+    
+    // Convert threshold to int16 range (-32768 to 32767)
+    const amplitudeThreshold = threshold * 32767;
+    
+    // Find the start of voice activity
+    let startIndex = 0;
+    const windowSize = Math.floor(sampleRate * 0.02); // 20ms window
+    
+    for (let i = 0; i < samples - windowSize; i += windowSize) {
+      // Calculate RMS (Root Mean Square) for current window
+      let sum = 0;
+      for (let j = i; j < Math.min(i + windowSize, samples); j++) {
+        const sample = int16Array[j];
+        sum += sample * sample;
+      }
+      const rms = Math.sqrt(sum / windowSize);
+      
+      // If RMS exceeds threshold, we found voice activity
+      if (rms > amplitudeThreshold) {
+        startIndex = Math.max(0, i - windowSize); // Include one window before for context
+        break;
+      }
+    }
+    
+    // If no voice activity found, return original buffer
+    if (startIndex === 0) {
+      // Check if there's any significant audio at all
+      let hasAudio = false;
+      for (let i = 0; i < samples; i++) {
+        if (Math.abs(int16Array[i]) > amplitudeThreshold) {
+          hasAudio = true;
+          break;
+        }
+      }
+      if (!hasAudio) {
+        console.log("No voice activity detected in entire audio chunk");
+        return new ArrayBuffer(0); // Return empty buffer if no voice activity
+      }
+      return audioBuffer;
+    }
+    
+    // Calculate end index - remove last 2 seconds from the audio
+    const samplesToRemoveFromEnd = Math.floor(sampleRate * 2); // 2 seconds worth of samples
+    let endIndex = samples - samplesToRemoveFromEnd;
+    
+    // Make sure we don't remove more than we have
+    if (endIndex <= startIndex) {
+      // If trimming would remove all audio, keep at least 0.5 seconds
+      const minSamples = Math.floor(sampleRate * 0.5);
+      endIndex = Math.min(samples, startIndex + minSamples);
+    }
+    
+    const trimmedFromStart = startIndex;
+    const trimmedFromEnd = samples - endIndex;
+    
+    console.log(`Trimming ${trimmedFromStart} samples (${(trimmedFromStart / sampleRate * 1000).toFixed(1)}ms) from beginning and ${trimmedFromEnd} samples (${(trimmedFromEnd / sampleRate * 1000).toFixed(1)}ms) from end of audio`);
+    
+    // Create new buffer with trimmed audio
+    const trimmedSamples = endIndex - startIndex;
+    const trimmedBuffer = new ArrayBuffer(trimmedSamples * 2); // 2 bytes per sample (int16)
+    const trimmedInt16Array = new Int16Array(trimmedBuffer);
+    
+    // Copy trimmed audio data
+    for (let i = 0; i < trimmedSamples; i++) {
+      trimmedInt16Array[i] = int16Array[startIndex + i];
+    }
+    
+    return trimmedBuffer;
+  };
+
   // Function to transcribe audio using Gemini API
   const transcribeAudio = async (audioBuffer: ArrayBuffer): Promise<string> => {
     try {
       console.log("Starting transcription with Gemini API...");
       
+      // Trim silence from the beginning of the audio
+      const trimmedAudioBuffer = trimSilenceFromAudio(audioBuffer, vadThreshold);
+      
+      // Skip transcription if no voice activity was detected
+      if (trimmedAudioBuffer.byteLength === 0) {
+        console.log("No voice activity detected, skipping transcription");
+        return "";
+      }
+      
       // Convert audio to WAV format and then to base64
-      const wavBuffer = createWavFile(audioBuffer, 16000);
+      const wavBuffer = createWavFile(trimmedAudioBuffer, 16000);
       const base64Audio = arrayBufferToBase64(wavBuffer);
       
       const config = {
@@ -296,8 +383,16 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
   const openInputAudioInNewWindow = (audioBuffer: ArrayBuffer) => {
     if (audioBuffer.byteLength === 0) return;
     
+          // Trim silence from the beginning of the audio for playback
+      const trimmedAudioBuffer = trimSilenceFromAudio(audioBuffer, vadThreshold);
+      
+      if (trimmedAudioBuffer.byteLength === 0) {
+        console.log("No voice activity detected, skipping audio playback");
+        return;
+      }
+    
     // Convert PCM data to WAV format (16kHz for input audio)
-    const wavBuffer = createWavFile(audioBuffer, 16000);
+    const wavBuffer = createWavFile(trimmedAudioBuffer, 16000);
     const blob = new Blob([wavBuffer], { type: 'audio/wav' });
     const url = URL.createObjectURL(blob);
     console.log("Audio URL:", url);
@@ -347,23 +442,31 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           // setTranscriptionResults("Transcrevendo...");
           const transcription = await transcribeAudio(concatenatedAudio);
           
-          // Add to transcription log
-          const logEntry = {
-            id: Date.now().toString(),
-            text: transcription,
-            audioBuffer: concatenatedAudio,
-            timestamp: new Date(),
-            disliked: false,
-          };
-          setTranscriptionLog(prev => [...prev, logEntry]);
+          // Only add to log if transcription was successful and not empty
+          if (transcription && transcription.trim()) {
+            // Use trimmed audio for consistent playback in the log
+            const trimmedAudio = trimSilenceFromAudio(concatenatedAudio, vadThreshold);
+            
+            // Add to transcription log
+            const logEntry = {
+              id: Date.now().toString(),
+              text: transcription,
+              audioBuffer: trimmedAudio.byteLength > 0 ? trimmedAudio : concatenatedAudio,
+              timestamp: new Date(),
+              disliked: false,
+            };
+            setTranscriptionLog(prev => [...prev, logEntry]);
+          }
           
-          // Concatenate the transcription results with proper formatting
-          setTranscriptionResults(prev => {
-            const newResult = prev ? prev + "\n\n" + transcription : transcription;
-            return newResult;
-          });
-          // Update previous transcription for context
-          setPreviousTranscription(transcription);
+          // Concatenate the transcription results with proper formatting (only if transcription is not empty)
+          if (transcription && transcription.trim()) {
+            setTranscriptionResults(prev => {
+              const newResult = prev ? prev + "\n\n" + transcription : transcription;
+              return newResult;
+            });
+            // Update previous transcription for context
+            setPreviousTranscription(transcription);
+          }
           
           console.log("Turn completed - State before clearing:", {
             currentModelText: currentModelText.substring(0, 50),
@@ -399,7 +502,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     return () => {
       client.off("turncomplete", onTurnComplete);
     };
-  }, [client, currentTurnInputAudioChunks, previousTranscription, modelTurnText, transcriptionText]);
+  }, [client, currentTurnInputAudioChunks, previousTranscription, modelTurnText, transcriptionText, vadThreshold]);
 
   // Listen for transcription events
   useEffect(() => {
