@@ -492,11 +492,11 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     if (transcriptionResults && currentTurnText) {
       return "Transcrevendo...";
     } else if (transcriptionResults) {
-      return "Transcrição Final:";
+      return "Transcrição finalizada";
     } else if (transcriptionText) {
-      return "Transcrição em Tempo Real...";
+      return "Transcrevendo em tempo real...";
     } else if (modelTurnText) {
-      return "Refinando...";
+      return "Refinando transcrição...";
     } else {
       return "Aguardando áudio...";
     }
@@ -516,7 +516,6 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
             right: '20px',
             width: '500px',
             height: '500px',
-            zIndex: 1000,
             display: hasTranscriptionText ? 'block' : 'none'
           }}>
             <Editor
@@ -538,7 +537,6 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
             maxWidth: '500px',
             maxHeight: '500px',
             overflow: 'auto',
-            zIndex: 1000,
             fontSize: '16px',
             lineHeight: '1.5',
             display: displayText ? 'block' : 'none'

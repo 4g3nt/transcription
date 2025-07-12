@@ -92,7 +92,7 @@ export default function SettingsDialog() {
   );
 
   return (
-    <div className="settings-dialog">
+    <div className="settings-dialog z-10">
       <button
         className="action-button material-symbols-outlined"
         onClick={() => setOpen(!open)}

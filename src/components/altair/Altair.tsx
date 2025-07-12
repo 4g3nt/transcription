@@ -61,7 +61,7 @@ function AltairComponent() {
           // startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_HIGH,
           // endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW,
           // prefixPaddingMs: 20,
-          silenceDurationMs: 1500,
+          silenceDurationMs: 2000,
         }
       },
       speechConfig: {

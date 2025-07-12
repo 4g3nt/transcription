@@ -223,52 +223,28 @@ function EditorComponent({
     URL.revokeObjectURL(url);
   };
 
-  const getStatusText = () => {
-    const currentTurnText = transcriptionText
-      ? (modelTurnText + (modelTurnText ? " " : "") + transcriptionText).trim()
-      : modelTurnText;
-
-    if (transcriptionResults && currentTurnText) {
-      return "Transcrevendo...";
-    } else if (transcriptionResults) {
-      return "Transcrição Final:";
-    } else if (transcriptionText) {
-      return "Transcrição em Tempo Real...";
-    } else if (modelTurnText) {
-      return "Refinando...";
-    } else {
-      return "Aguardando áudio...";
+  const getStatus = () => {
+    if (modelTurnText) {
+      return { text: "Refinando transcrição...", color: "#FF9800" }; // Orange - Processing
     }
+    if (transcriptionText) {
+      // if (transcriptionResults) {
+      //   return { text: "Transcrevendo...", color: "#9C27B0" }; // Purple - Combined state
+      // } else {
+        return { text: "Transcrevendo...", color: "#2196F3" }; // Blue - Live transcription
+      // }
+    }
+    if (transcriptionResults) {
+      return { text: "Transcrição finalizada", color: "#4CAF50" }; // Green - Finalized
+    }
+    return { text: "Aguardando áudio...", color: "#9E9E9E" }; // Gray - Waiting
   };
 
-  const getStatusColor = () => {
-    const currentTurnText = transcriptionText
-      ? (modelTurnText + (modelTurnText ? " " : "") + transcriptionText).trim()
-      : modelTurnText;
-      
-    if (transcriptionResults && currentTurnText) {
-      return "#9C27B0"; // Purple - Combined state
-    } else if (transcriptionResults) {
-      return "#4CAF50"; // Green - Finalized
-    } else if (transcriptionText) {
-      return "#2196F3"; // Blue - Live transcription
-    } else if (modelTurnText) {
-      return "#FF9800"; // Orange - Processing
-    } else {
-      return "#9E9E9E"; // Gray - Waiting
-    }
-  };
+  const status = getStatus();
 
   return (
     <div className="editor-container">
       <div className="editor-header">
-        <div className="editor-status">
-          <div 
-            className="status-indicator"
-            style={{ backgroundColor: getStatusColor() }}
-          />
-          <span className="status-text">{getStatusText()}</span>
-        </div>
         <div className="editor-controls">
           <button 
             onClick={handleCopyToClipboard}
@@ -308,12 +284,21 @@ function EditorComponent({
       />
       
       <div className="editor-footer">
-        <span className="character-count">
-          {editorText.length} caracteres
-        </span>
-        <span className="word-count">
-          {editorText.trim() ? editorText.trim().split(/\s+/).length : 0} palavras
-        </span>
+        <div className="editor-status">
+          <div
+            className="status-indicator"
+            style={{ backgroundColor: status.color }}
+          />
+          <span className="status-text">{status.text}</span>
+        </div>
+        <div className="editor-text-metrics">
+          <span className="character-count">
+            {editorText.length} caracteres
+          </span>
+          <span className="word-count">
+            {editorText.trim() ? editorText.trim().split(/\s+/).length : 0} palavras
+          </span>
+        </div>
       </div>
     </div>
   );
