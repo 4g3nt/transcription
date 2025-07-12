@@ -37,8 +37,13 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, class
             }
           }}
         >
-          {content || "Nada para mostrar ainda..."}
+          {content && content.length > 0 ? content : undefined}
         </ReactMarkdown>
+        {(!content || content.length === 0) && (
+          <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
+          Nada para mostrar ainda
+        </div>
+        )}
       </div>
     </div>
   );

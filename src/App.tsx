@@ -36,7 +36,7 @@ const apiOptions: LiveClientOptions = {
 };
 
 function AppContent() {
-  // this video reference is used for displaying the active stream, whether that is the webcam or screen capture
+  // this video reference is used for displaying the active stream, whether that is the screen capture or the video
   // feel free to style as you see fit
   const videoRef = useRef<HTMLVideoElement>(null);
   const transcriptionDisplayRef = useRef<HTMLDivElement>(null);
@@ -56,8 +56,15 @@ function AppContent() {
   const [editorText, setEditorText] = useState<string>("# Laudo de Radiologia\n\n");
   // state to track if preview is shown
   const [showPreview, setShowPreview] = useState<boolean>(true);
+  // state to track transcription log entries
+  const [transcriptionLog, setTranscriptionLog] = useState<Array<{
+    id: string;
+    text: string;
+    audioBuffer: ArrayBuffer;
+    timestamp: Date;
+  }>>([]);
   
-  const { client } = useLiveAPIContext();
+  const { client, connected } = useLiveAPIContext();
 
   // Initialize Gemini AI client for transcription
   const geminiAI = new GoogleGenAI({ apiKey: API_KEY });
@@ -336,6 +343,15 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           // setTranscriptionResults("Transcrevendo...");
           const transcription = await transcribeAudio(concatenatedAudio);
           
+          // Add to transcription log
+          const logEntry = {
+            id: Date.now().toString(),
+            text: transcription,
+            audioBuffer: concatenatedAudio,
+            timestamp: new Date()
+          };
+          setTranscriptionLog(prev => [...prev, logEntry]);
+          
           // Concatenate the transcription results with proper formatting
           setTranscriptionResults(prev => {
             const newResult = prev ? prev + "\n\n" + transcription : transcription;
@@ -451,6 +467,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     setModelTurnText("");
     setTranscriptionResults("");
     setPreviousTranscription("");
+    setTranscriptionLog([]);
   };
 
   // Check if any transcription text is available to show the editor
@@ -530,15 +547,13 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: showPreview ? '1000px' : '500px',
+              width: showPreview ? '1400px' : '800px',
               height: '600px',
               display: 'flex',
               flexDirection: 'column',
               gap: '10px',
             }}
           >
-
-            
             {/* Editor and Preview Layout */}
             <div
               className="editor-preview-layout"
@@ -580,10 +595,86 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                   <MarkdownPreview content={editorText} />
                 </div>
               )}
+              {/* Transcription Log */}
+              <div
+                className="transcription-log-wrapper"
+                style={{
+                  width: '300px',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <div className="preview-header">
+                  <span>Transcrições ({transcriptionLog.length})</span>
+                </div>
+                <div
+                  style={{
+                    flex: 1,
+                    overflow: 'auto',
+                    background: 'white',
+                    border: '1px solid #ddd',
+                    borderRadius: '0 0 8px 8px',
+                    padding: '10px',
+                  }}
+                >
+                  {transcriptionLog.length === 0 ? (
+                    <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
+                      Nenhuma transcrição ainda
+                    </div>
+                  ) : (
+                    transcriptionLog.map((entry) => (
+                      <div
+                        key={entry.id}
+                        style={{
+                          marginBottom: '15px',
+                          padding: '10px',
+                          background: '#f9f9f9',
+                          borderRadius: '6px',
+                          border: '1px solid #e0e0e0',
+                        }}
+                      >
+                        <div
+                          style={{
+                            fontSize: '12px',
+                            color: '#666',
+                            marginBottom: '5px',
+                          }}
+                        >
+                          {entry.timestamp.toLocaleTimeString()}
+                        </div>
+                        <div
+                          style={{
+                            fontSize: '13px',
+                            lineHeight: '1.4',
+                            marginBottom: '8px',
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {entry.text}
+                        </div>
+                        <audio
+                          controls={!connected}
+                          style={{
+                            width: '100%',
+                            height: '30px',
+                            fontSize: '12px',
+                          }}
+                          src={URL.createObjectURL(
+                            new Blob([createWavFile(entry.audioBuffer, 16000)], { type: 'audio/wav' })
+                          )}
+                        />
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+              
             </div>
             
             {/* Original transcription display as a log */}
-            <div
+            {/* <div
               ref={transcriptionDisplayRef}
               className="transcription-display"
               style={{
@@ -595,12 +686,11 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                 overflow: 'auto',
                 fontSize: '14px',
                 lineHeight: '1.4',
-                // display: displayText ? 'block' : 'none',
-                display: 'none',
+                display: displayText ? 'block' : 'none',
               }}
             >
               <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{displayText}</p>
-            </div>
+            </div> */}
           </div>
           <video
             className={cn('stream', {
