@@ -13,7 +13,7 @@ export const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, class
   return (
     <div className={`markdown-preview ${className}`}>
       <div className="preview-header">
-        <span>Preview</span>
+        <span>Pré-visualização</span>
       </div>
       <div className="preview-content">
         <ReactMarkdown

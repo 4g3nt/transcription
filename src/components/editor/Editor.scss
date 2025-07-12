@@ -110,8 +110,8 @@
   flex-wrap: wrap;
   gap: 4px;
   padding: 8px 12px;
-  background: #2d2d2d;
-  border-bottom: 1px solid #404040;
+  background: #f8f9fa;
+  border-bottom: 1px solid #e1e5e9;
 }
 
 .markdown-button {
@@ -123,24 +123,24 @@
   padding: 0 6px;
   border: none;
   border-radius: 4px;
-  background: #1a1a1a;
+  background: #ffffff;
   cursor: pointer;
   transition: all 0.2s ease;
   font-size: 12px;
   font-weight: 500;
-  color: #e1e5e9;
-  border: 1px solid #404040;
+  color: #495057;
+  border: 1px solid #e1e5e9;
   
   &:hover {
-    background: #404040;
-    color: #64b5f6;
+    background: #e9ecef;
+    color: #1976d2;
     transform: translateY(-1px);
-    border-color: #64b5f6;
+    border-color: #1976d2;
   }
   
   &:active {
     transform: translateY(0);
-    background: #525252;
+    background: #dee2e6;
   }
 }
 

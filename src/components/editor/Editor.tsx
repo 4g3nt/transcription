@@ -85,6 +85,17 @@ function EditorComponent({
   const prevModelTurnTextRef = useRef<string>("");
   const prevTranscriptionResultsRef = useRef<string>("");
 
+  // Position cursor at the end of pre-loaded content on mount
+  useEffect(() => {
+    if (textareaRef.current && editorText) {
+      const textarea = textareaRef.current;
+      // Set cursor to the end of the text
+      textarea.selectionStart = editorText.length;
+      textarea.selectionEnd = editorText.length;
+      textarea.focus();
+    }
+  }, []); // Empty dependency array means this runs only once on mount
+
   // Markdown formatting functions
   const formatText = (format: string) => {
     if (!textareaRef.current) return;
@@ -342,11 +353,11 @@ function EditorComponent({
   };
 
   const handleDownloadText = () => {
-    const blob = new Blob([editorText], { type: 'text/plain' });
+    const blob = new Blob([editorText], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `transcricao-${new Date().toISOString().split('T')[0]}.txt`;
+    a.download = `Laudo_${new Date().toLocaleDateString('pt-BR', { year: 'numeric', month: '2-digit', day: '2-digit' })}.md`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -410,7 +421,7 @@ function EditorComponent({
             <button 
               onClick={onTogglePreview}
               className={cn("editor-button", { active: showPreview })}
-              title={showPreview ? "Ocultar preview" : "Mostrar preview"}
+              title={showPreview ? "Ocultar pré-visualização" : "Mostrar pré-visualização"}
             >
               👁️
             </button>
