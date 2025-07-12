@@ -639,11 +639,17 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
   }, [displayText]);
 
   // Auto-scroll transcription log when new entries are added
+  const [transcriptionLogLength, setTranscriptionLogLength] = useState(0);
+  
   useEffect(() => {
-    if (transcriptionLogRef.current) {
-      transcriptionLogRef.current.scrollTop = transcriptionLogRef.current.scrollHeight;
+    // Only scroll if the length has increased (new entry added)
+    if (transcriptionLog.length > transcriptionLogLength) {
+      if (transcriptionLogRef.current) {
+        transcriptionLogRef.current.scrollTop = transcriptionLogRef.current.scrollHeight;
+      }
     }
-  }, [transcriptionLog]);
+    setTranscriptionLogLength(transcriptionLog.length);
+  }, [transcriptionLog, transcriptionLogLength]);
 
   const displayTitle = (() => {
     if (transcriptionResults && currentTurnText) {
