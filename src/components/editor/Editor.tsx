@@ -125,13 +125,13 @@ function EditorComponent({
 
   const getStatusText = () => {
     if (transcriptionResults && currentTurnText) {
-      return "Transcrições Acumuladas + Atual";
-    } else if (transcriptionResults) {
-      return "Transcrições Finalizadas";
-    } else if (transcriptionText) {
       return "Transcrevendo...";
+    } else if (transcriptionResults) {
+      return "Transcrição Final:";
+    } else if (transcriptionText) {
+      return "Transcrição em Tempo Real...";
     } else if (modelTurnText) {
-      return "Processando...";
+      return "Refinando...";
     } else {
       return "Aguardando áudio...";
     }

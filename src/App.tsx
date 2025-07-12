@@ -189,6 +189,8 @@ A palavra "ponto" deve ser transcrita como "." ao invés de "ponto".
 A palavra "parágrafo" deve ser transcrita como "\n\n" ao invés de "parágrafo".
 A palavra "dois pontos" deve ser transcrita como ":" ao invés de "dois pontos".
 A palavra "ponto e vírgula" deve ser transcrita como ";" ao invés de "ponto e vírgula".
+A palavra "abre parêntese" deve ser transcrita como "(" ao invés de "abre parêntese".
+A palavra "fecha parêntese" deve ser transcrita como ")" ao invés de "fecha parêntese".
 
 Tome cuidado ao inserir pontuação, pois o áudio pode conter ou não pontuação falada. Evite repetir pontuação que já foi dita pelo médico.
 
@@ -281,9 +283,10 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     const wavBuffer = createWavFile(audioBuffer, 16000);
     const blob = new Blob([wavBuffer], { type: 'audio/wav' });
     const url = URL.createObjectURL(blob);
+    console.log("Audio URL:", url);
     
     // Open in new window
-    const newWindow = window.open('', '_blank');
+    /* const newWindow = window.open('', '_blank');
     if (newWindow) {
       newWindow.document.write(`
         <html>
@@ -301,7 +304,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           </body>
         </html>
       `);
-    }
+    } */
   };
 
   // Listen for turn complete events to process collected input audio
@@ -315,6 +318,13 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
         const concatenatedAudio = concatenateBase64AudioChunks(currentTurnInputAudioChunks);
         console.log("Concatenated input audio size:", concatenatedAudio.byteLength, "bytes");
         
+        // Capture the current turn's text to clear only this specific text later
+        const currentModelText = modelTurnText;
+        const currentTranscriptionText = transcriptionText;
+        
+        // Also open the audio in a new window for playback
+        openInputAudioInNewWindow(concatenatedAudio);
+
         // Transcribe the audio using Gemini API
         try {
           // setTranscriptionResults("Transcrevendo...");
@@ -327,9 +337,17 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           });
           // Update previous transcription for context
           setPreviousTranscription(transcription);
-          // Clear model turn text and transcription text since we now have the final transcription
-          setModelTurnText("");
-          setTranscriptionText("");
+          
+          // Only clear the text if it hasn't been updated since this turn completed
+          // (i.e., if user hasn't started speaking again)
+          setModelTurnText(current => {
+            // Only clear if the text is still the same as when this turn completed
+            return current === currentModelText ? "" : current;
+          });
+          setTranscriptionText(current => {
+            // Only clear if the text is still the same as when this turn completed
+            return current === currentTranscriptionText ? "" : current;
+          });
           
           console.log("Transcription completed:", transcription);
         } catch (error) {
@@ -337,8 +355,6 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           setTranscriptionResults("Erro na transcrição");
         }
         
-        // Also open the audio in a new window for playback
-        // openInputAudioInNewWindow(concatenatedAudio);
       } else {
         console.log("No input audio chunks to process");
       }
@@ -352,19 +368,13 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     return () => {
       client.off("turncomplete", onTurnComplete);
     };
-  }, [client, currentTurnInputAudioChunks, previousTranscription]);
+  }, [client, currentTurnInputAudioChunks, previousTranscription, modelTurnText, transcriptionText]);
 
   // Listen for transcription events
   useEffect(() => {
     const onTranscription = (text: string) => {
-      // Clear previous model text when new transcription starts
-      setModelTurnText(prev => {
-        if (prev && text) {
-          return "";
-        }
-        return prev;
-      });
-      
+      // Keep previous model text visible during live transcription
+      // Only clear it when a new model turn arrives or turn completes
       setTranscriptionText(prev => (prev + text).trim());
     };
 
@@ -403,6 +413,10 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           .replaceAll("parágrafo", "\n\n")
           .replaceAll(", .", ".")
           .replaceAll("paragrafo", "\n\n")
+          .replaceAll("abre parêntese", "(")
+          .replaceAll("abre parentese", "(")
+          .replaceAll("fecha parêntese", ")")
+          .replaceAll("fecha parentese", ")")
           .replaceAll("?", "? ")
           .replaceAll("!", "! ")
           .replaceAll("  ", " ")
@@ -464,6 +478,10 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     .replaceAll("parágrafo", "\n\n")
     .replaceAll(", .", ".")
     .replaceAll("paragrafo", "\n\n")
+    .replaceAll("abre parêntese", "(")
+    .replaceAll("abre parentese", "(")
+    .replaceAll("fecha parêntese", ")")
+    .replaceAll("fecha parentese", ")")
     .replaceAll("?", "? ")
     .replaceAll("!", "! ")
     .replaceAll("  ", " ");
@@ -472,15 +490,15 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
 
   const displayTitle = (() => {
     if (transcriptionResults && currentTurnText) {
-      return "Transcrições Acumuladas + Atual:";
+      return "Transcrevendo...";
     } else if (transcriptionResults) {
-      return "Transcrições Finalizadas:";
+      return "Transcrição Final:";
     } else if (transcriptionText) {
       return "Transcrição em Tempo Real...";
     } else if (modelTurnText) {
       return "Refinando...";
     } else {
-      return "Aguardando...";
+      return "Aguardando áudio...";
     }
   })();
 

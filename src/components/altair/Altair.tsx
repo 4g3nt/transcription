@@ -86,6 +86,8 @@ A palavra "ponto" deve ser transcrita como "." ao invés de "ponto".
 A palavra "parágrafo" deve ser transcrita como "\n\n" ao invés de "parágrafo".
 A palavra "dois pontos" deve ser transcrita como ":" ao invés de "dois pontos".
 A palavra "ponto e vírgula" deve ser transcrita como ";" ao invés de "ponto e vírgula".
+A palavra "abre parêntese" deve ser transcrita como "(" ao invés de "abre parêntese".
+A palavra "fecha parêntese" deve ser transcrita como ")" ao invés de "fecha parêntese".
 
 Tome cuidado ao inserir pontuação, pois o áudio pode conter ou não pontuação falada. Evite repetir pontuação que já foi dita pelo médico.
 
