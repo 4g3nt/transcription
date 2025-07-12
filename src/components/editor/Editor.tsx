@@ -27,6 +27,8 @@ interface EditorProps {
   onTextChange?: (text: string) => void;
   showPreview?: boolean;
   onTogglePreview?: () => void;
+  showTranscriptionLog?: boolean;
+  onToggleTranscriptionLog?: () => void;
 }
 
 // Markdown toolbar component
@@ -73,6 +75,8 @@ function EditorComponent({
   onTextChange,
   showPreview = true,
   onTogglePreview,
+  showTranscriptionLog = true,
+  onToggleTranscriptionLog,
 }: EditorProps) {
   const { connected, connect, disconnect } = useLiveAPIContext();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -84,6 +88,7 @@ function EditorComponent({
   const prevTranscriptionTextRef = useRef<string>("");
   const prevModelTurnTextRef = useRef<string>("");
   const prevTranscriptionResultsRef = useRef<string>("");
+  const actualInsertedTextRef = useRef<string>(""); // Track the actual text inserted into editor
 
   // Position cursor at the end of pre-loaded content on mount
   useEffect(() => {
@@ -209,19 +214,74 @@ function EditorComponent({
       lastModelTurnText.length > 0 &&
       transcriptionResults.length > prevTranscriptionResultsRef.current.length;
 
+    // Only log when turn completion is detected to reduce noise
+    if (turnCompleted) {
+      console.log("Turn completion detected in Editor:", {
+        modelTurnTextLength: modelTurnText.length,
+        lastModelTurnTextLength: lastModelTurnText.length,
+        transcriptionResultsLength: transcriptionResults.length,
+        prevTranscriptionResultsLength: prevTranscriptionResultsRef.current.length
+      });
+    }
+
     if (turnCompleted) {
       // Case 3: Turn completed. Replace the previous model turn text with the new final text.
-      const lastOccurrenceIndex = editorText.lastIndexOf(lastModelTurnText);
+      const newFinalText = transcriptionResults.substring(
+        prevTranscriptionResultsRef.current.length
+      ).trim();
 
-      if (lastOccurrenceIndex !== -1) {
-        // Find the new final text chunk.
-        const newFinalText = transcriptionResults.substring(
-          prevTranscriptionResultsRef.current.length
-        ).trim();
+      const actualInsertedText = actualInsertedTextRef.current;
 
-        textToInsert = newFinalText;
-        replaceFrom = lastOccurrenceIndex;
-        replaceTo = lastOccurrenceIndex + lastModelTurnText.length;
+      console.log("Turn completed - replacing:", { 
+        lastModelTurnText: lastModelTurnText.substring(0, 100), 
+        actualInsertedText: actualInsertedText.substring(0, 100),
+        newFinalText: newFinalText.substring(0, 100), 
+        editorTextEnd: editorText.substring(Math.max(0, editorText.length - 100))
+      });
+
+      if (newFinalText && actualInsertedText) {
+        // Try multiple strategies to find and replace the actual inserted text
+        let found = false;
+        
+        // Strategy 1: Exact match with actual inserted text
+        let lastOccurrenceIndex = editorText.lastIndexOf(actualInsertedText);
+        if (lastOccurrenceIndex !== -1) {
+          console.log("Found exact match with actual inserted text at index:", lastOccurrenceIndex);
+          textToInsert = newFinalText;
+          replaceFrom = lastOccurrenceIndex;
+          replaceTo = lastOccurrenceIndex + actualInsertedText.length;
+          found = true;
+        }
+        
+        // Strategy 2: Try to find the text at the end of the editor
+        if (!found && editorText.endsWith(actualInsertedText.trim())) {
+          console.log("Found actual inserted text at end of editor");
+          const replaceStart = editorText.length - actualInsertedText.trim().length;
+          textToInsert = newFinalText;
+          replaceFrom = replaceStart;
+          replaceTo = editorText.length;
+          found = true;
+        }
+        
+        // Strategy 3: Fallback to original model turn text matching
+        if (!found && lastModelTurnText) {
+          console.log("Fallback to original model turn text matching");
+          lastOccurrenceIndex = editorText.lastIndexOf(lastModelTurnText);
+          if (lastOccurrenceIndex !== -1) {
+            textToInsert = newFinalText;
+            replaceFrom = lastOccurrenceIndex;
+            replaceTo = lastOccurrenceIndex + lastModelTurnText.length;
+            found = true;
+          }
+        }
+        
+        // Strategy 4: No match found, append new text
+        if (!found) {
+          console.log("No match found, appending new text");
+          textToInsert = (editorText.endsWith('\n') ? '' : '\n\n') + newFinalText;
+          replaceFrom = editorText.length;
+          replaceTo = editorText.length;
+        }
       }
     } else if (modelTurnText.length > lastModelTurnText.length) {
       // Case 2: New model turn text, replaces live transcription.
@@ -284,6 +344,21 @@ function EditorComponent({
         }
       }
 
+      // Track the actual text that will be inserted for model turn content
+      if (modelTurnText.length > lastModelTurnText.length) {
+        const newModelContent = modelTurnText.substring(lastModelTurnText.length);
+        
+        // If this is the start of a new turn (previous model text was empty), reset the tracker
+        if (lastModelTurnText.length === 0) {
+          actualInsertedTextRef.current = textToInsert;
+          console.log("Starting new turn, resetting tracker:", { textToInsert });
+        } else {
+          // Continue tracking for the current turn
+          actualInsertedTextRef.current = actualInsertedTextRef.current + textToInsert;
+          console.log("Continuing turn, tracking:", { textToInsert, totalInserted: actualInsertedTextRef.current });
+        }
+      }
+
       const newEditorText =
         editorText.substring(0, replaceFrom) +
         textToInsert +
@@ -306,6 +381,11 @@ function EditorComponent({
     prevTranscriptionTextRef.current = transcriptionText;
     prevModelTurnTextRef.current = modelTurnText;
     prevTranscriptionResultsRef.current = transcriptionResults;
+    
+    // Clear the tracked inserted text when turn completes
+    if (turnCompleted) {
+      actualInsertedTextRef.current = "";
+    }
   }, [
     transcriptionText,
     modelTurnText,
@@ -417,15 +497,26 @@ function EditorComponent({
               🗑️
             </button>
           </div>
-          {onTogglePreview && (
-            <button 
-              onClick={onTogglePreview}
-              className={cn("editor-button", { active: showPreview })}
-              title={showPreview ? "Ocultar pré-visualização" : "Mostrar pré-visualização"}
-            >
-              👁️
-            </button>
-          )}
+          <div className="editor-controls-right">
+            {onTogglePreview && (
+              <button 
+                onClick={onTogglePreview}
+                className={cn("editor-button", { active: showPreview })}
+                title={showPreview ? "Ocultar pré-visualização" : "Mostrar pré-visualização"}
+              >
+                👁️
+              </button>
+            )}
+            {onToggleTranscriptionLog && (
+              <button 
+                onClick={onToggleTranscriptionLog}
+                className={cn("editor-button", { active: showTranscriptionLog })}
+                title={showTranscriptionLog ? "Ocultar transcrições" : "Mostrar transcrições"}
+              >
+                📝
+              </button>
+            )}
+          </div>
         </div>
       </div>
       
@@ -438,7 +529,7 @@ function EditorComponent({
         onChange={handleTextChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        placeholder="A transcrição aparecerá aqui conforme você dita..."
+        placeholder="A transcrição aparecerá aqui conforme for ditada..."
         spellCheck={false}
       />
       

@@ -56,12 +56,15 @@ function AppContent() {
   const [editorText, setEditorText] = useState<string>("# Laudo de Radiologia\n\n");
   // state to track if preview is shown
   const [showPreview, setShowPreview] = useState<boolean>(true);
+  // state to track if transcription log is shown
+  const [showTranscriptionLog, setShowTranscriptionLog] = useState<boolean>(true);
   // state to track transcription log entries
   const [transcriptionLog, setTranscriptionLog] = useState<Array<{
     id: string;
     text: string;
     audioBuffer: ArrayBuffer;
     timestamp: Date;
+    disliked?: boolean;
   }>>([]);
   
   const { client, connected } = useLiveAPIContext();
@@ -348,7 +351,8 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
             id: Date.now().toString(),
             text: transcription,
             audioBuffer: concatenatedAudio,
-            timestamp: new Date()
+            timestamp: new Date(),
+            disliked: false,
           };
           setTranscriptionLog(prev => [...prev, logEntry]);
           
@@ -360,12 +364,16 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           // Update previous transcription for context
           setPreviousTranscription(transcription);
           
-          // Only clear the text if it hasn't been updated since this turn completed
-          // (i.e., if user hasn't started speaking again)
-          setModelTurnText(current => {
-            // Only clear if the text is still the same as when this turn completed
-            return current === currentModelText ? "" : current;
+          console.log("Turn completed - State before clearing:", {
+            currentModelText: currentModelText.substring(0, 50),
+            currentTranscriptionText: currentTranscriptionText.substring(0, 50),
+            transcriptionResultsLength: transcriptionResults.length
           });
+          
+          // Clear the modelTurnText completely after turn completion
+          // This ensures the Editor can detect the next turn completion
+          console.log("Clearing modelTurnText and transcriptionText after turn completion");
+          setModelTurnText("");
           setTranscriptionText(current => {
             // Only clear if the text is still the same as when this turn completed
             return current === currentTranscriptionText ? "" : current;
@@ -470,6 +478,14 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     setTranscriptionLog([]);
   };
 
+  const handleDislike = (id: string) => {
+    setTranscriptionLog(prevLog =>
+      prevLog.map(entry =>
+        entry.id === id ? { ...entry, disliked: !entry.disliked } : entry
+      )
+    );
+  };
+
   // Check if any transcription text is available to show the editor
   const hasTranscriptionText = transcriptionText || modelTurnText || transcriptionResults;
 
@@ -547,7 +563,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: showPreview ? '1400px' : '800px',
+              width: showPreview && showTranscriptionLog ? '1400px' : showPreview || showTranscriptionLog ? '1100px' : '800px',
               height: '600px',
               display: 'flex',
               flexDirection: 'column',
@@ -580,6 +596,8 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                   onTextChange={setEditorText}
                   showPreview={showPreview}
                   onTogglePreview={() => setShowPreview(!showPreview)}
+                  showTranscriptionLog={showTranscriptionLog}
+                  onToggleTranscriptionLog={() => setShowTranscriptionLog(!showTranscriptionLog)}
                 />
               </div>
               
@@ -596,80 +614,100 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                 </div>
               )}
               {/* Transcription Log */}
-              <div
-                className="transcription-log-wrapper"
-                style={{
-                  width: '300px',
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                }}
-              >
-                <div className="preview-header">
-                  <span>Transcrições ({transcriptionLog.length})</span>
-                </div>
+              {showTranscriptionLog && (
                 <div
+                  className="transcription-log-wrapper"
                   style={{
-                    flex: 1,
-                    overflow: 'auto',
-                    background: 'white',
-                    border: '1px solid #ddd',
-                    borderRadius: '0 0 8px 8px',
-                    padding: '10px',
+                    width: '300px',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
                   }}
                 >
-                  {transcriptionLog.length === 0 ? (
-                    <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
-                      Nenhuma transcrição ainda
-                    </div>
-                  ) : (
-                    transcriptionLog.map((entry) => (
-                      <div
-                        key={entry.id}
-                        style={{
-                          marginBottom: '15px',
-                          padding: '10px',
-                          background: '#f9f9f9',
-                          borderRadius: '6px',
-                          border: '1px solid #e0e0e0',
-                        }}
-                      >
-                        <div
-                          style={{
-                            fontSize: '12px',
-                            color: '#666',
-                            marginBottom: '5px',
-                          }}
-                        >
-                          {entry.timestamp.toLocaleTimeString()}
-                        </div>
-                        <div
-                          style={{
-                            fontSize: '13px',
-                            lineHeight: '1.4',
-                            marginBottom: '8px',
-                            whiteSpace: 'pre-wrap',
-                            wordBreak: 'break-word',
-                          }}
-                        >
-                          {entry.text}
-                        </div>
-                        <audio
-                          controls={!connected}
-                          style={{
-                            width: '100%',
-                            height: '30px',
-                            fontSize: '12px',
-                          }}
-                          src={URL.createObjectURL(
-                            new Blob([createWavFile(entry.audioBuffer, 16000)], { type: 'audio/wav' })
-                          )}
-                        />
+                  <div className="preview-header">
+                    <span>Transcrições ({transcriptionLog.length})</span>
+                  </div>
+                  <div
+                    style={{
+                      flex: 1,
+                      overflow: 'auto',
+                      background: 'white',
+                      border: '1px solid #ddd',
+                      borderRadius: '0 0 8px 8px',
+                      padding: '10px',
+                    }}
+                  >
+                    {transcriptionLog.length === 0 ? (
+                      <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
+                        Nenhuma transcrição ainda
                       </div>
-                    ))
-                  )}
+                    ) : (
+                      transcriptionLog.map((entry) => (
+                        <div
+                          key={entry.id}
+                          style={{
+                            position: 'relative',
+                            marginBottom: '15px',
+                            padding: '10px',
+                            background: entry.disliked ? '#ffeeee' : '#f9f9f9',
+                            borderRadius: '6px',
+                            border: '1px solid #e0e0e0',
+                          }}
+                        >
+                          <button
+                            onClick={() => handleDislike(entry.id)}
+                            style={{
+                              position: 'absolute',
+                              top: '8px',
+                              right: '8px',
+                              background: 'transparent',
+                              border: 'none',
+                              color: entry.disliked ? 'red' : 'black',
+                              cursor: 'pointer',
+                              fontSize: '18px',
+                            }}
+                            title={entry.disliked ? "Undo dislike" : "Dislike transcription"}
+                          >
+                            {entry.disliked ? '👎' : '👍'}
+                          </button>
+                          <div
+                            style={{
+                              fontSize: '12px',
+                              color: '#666',
+                              marginBottom: '5px',
+                              paddingRight: '30px',
+                            }}
+                          >
+                            {entry.timestamp.toLocaleTimeString()}
+                          </div>
+                          <div
+                            style={{
+                              fontSize: '13px',
+                              lineHeight: '1.4',
+                              marginBottom: '8px',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                            }}
+                          >
+                            {entry.text}
+                          </div>
+                          <audio
+                            controls={!connected}
+                            style={{
+                              width: '100%',
+                              height: '30px',
+                              fontSize: '12px',
+                            }}
+                            src={URL.createObjectURL(
+                              new Blob([createWavFile(entry.audioBuffer, 16000)], { type: 'audio/wav' })
+                            )}
+                          />
+                        </div>
+                      ))
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
               
             </div>
             
