@@ -125,6 +125,19 @@ function EditorComponent({
     }
 
     if (replaceFrom !== -1) {
+      // Add a space before the inserted text if it follows punctuation.
+      if (
+        replaceFrom > 0 &&
+        textToInsert.length > 0 &&
+        !/^\s/.test(textToInsert)
+      ) {
+        const charBefore = editorText.substring(replaceFrom - 1, replaceFrom);
+        const punctuation = ['.', ',', ';', ':', '?', '!'];
+        if (punctuation.includes(charBefore)) {
+          textToInsert = ' ' + textToInsert;
+        }
+      }
+
       const newEditorText =
         editorText.substring(0, replaceFrom) +
         textToInsert +
