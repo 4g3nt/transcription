@@ -76,7 +76,7 @@ function EditorComponent({
 }: EditorProps) {
   const { connected, connect, disconnect } = useLiveAPIContext();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [editorText, setEditorText] = useState<string>("");
+  const [editorText, setEditorText] = useState<string>("# Laudo de Radiologia\n\n");
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -355,10 +355,10 @@ function EditorComponent({
 
   const getStatus = () => {
     if (modelTurnText) {
-      return { text: "Refinando transcrição...", color: "#FF9800" }; // Orange - Processing
+      return { text: "Refinando transcrição...", color: "#2196F3" }; // Blue - Processing
     }
     if (transcriptionText) {
-      return { text: "Transcrevendo...", color: "#2196F3" }; // Blue - Live transcription
+      return { text: "Transcrevendo...", color: "#DC2626" }; // Red - Live transcription
     }
     if (transcriptionResults) {
       return { text: "Transcrição finalizada", color: "#4CAF50" }; // Green - Finalized
@@ -375,11 +375,11 @@ function EditorComponent({
           <div className="editor-controls-left">
             <button
               onClick={connected ? disconnect : connect}
-              className={cn("editor-button", "connect-toggle", { connected })}
-              title={connected ? "Stop recording" : "Start recording"}
+              className={cn("stop-button", "connect-toggle", { connected })}
+              title={connected ? "Parar ditado" : "Iniciar ditado"}
             >
               <span className="material-symbols-outlined filled">
-                {connected ? "stop" : "fiber_manual_record"}
+                {connected ? "fiber_manual_record" : "fiber_manual_record"}
               </span>
             </button>
             <button 
@@ -427,7 +427,7 @@ function EditorComponent({
         onChange={handleTextChange}
         onFocus={handleFocus}
         onBlur={handleBlur}
-        placeholder="A transcrição aparecerá aqui conforme você fala..."
+        placeholder="A transcrição aparecerá aqui conforme você dita..."
         spellCheck={false}
       />
       

@@ -53,7 +53,7 @@ function AppContent() {
   // state to track transcription results
   const [transcriptionResults, setTranscriptionResults] = useState<string>("");
   // state to track editor text for preview
-  const [editorText, setEditorText] = useState<string>("");
+  const [editorText, setEditorText] = useState<string>("# Laudo de Radiologia\n\n");
   // state to track if preview is shown
   const [showPreview, setShowPreview] = useState<boolean>(true);
   

@@ -50,6 +50,22 @@
   gap: 8px;
 }
 
+  
+.stop-button {
+  color: #dc2626;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+}
+
 .editor-button {
   display: flex;
   align-items: center;

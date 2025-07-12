@@ -160,7 +160,7 @@ function ControlTray({
   };
 
   return (
-    <section className="control-tray">
+    <section className="control-tray" style={{ display: "none" }} >
       <canvas style={{ display: "none" }} ref={renderCanvasRef} />
       <nav className={cn("actions-nav", { disabled: !connected })}>
         <button
