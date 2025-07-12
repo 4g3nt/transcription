@@ -615,89 +615,37 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
               )}
               {/* Transcription Log */}
               {showTranscriptionLog && (
-                <div
-                  className="transcription-log-wrapper"
-                  style={{
-                    width: '300px',
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                  }}
-                >
-                  <div className="preview-header">
+                <div className="transcription-log-wrapper">
+                  <div className="transcription-log-header">
                     <span>Transcrições ({transcriptionLog.length})</span>
                   </div>
-                  <div
-                    style={{
-                      flex: 1,
-                      overflow: 'auto',
-                      background: 'white',
-                      border: '1px solid #ddd',
-                      borderRadius: '0 0 8px 8px',
-                      padding: '10px',
-                    }}
-                  >
+                  <div className="transcription-log-content">
                     {transcriptionLog.length === 0 ? (
-                      <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
+                      <div className="transcription-log-empty">
                         Nenhuma transcrição ainda
                       </div>
                     ) : (
                       transcriptionLog.map((entry) => (
                         <div
                           key={entry.id}
-                          style={{
-                            position: 'relative',
-                            marginBottom: '15px',
-                            padding: '10px',
-                            background: entry.disliked ? '#ffeeee' : '#f9f9f9',
-                            borderRadius: '6px',
-                            border: '1px solid #e0e0e0',
-                          }}
+                          className={`transcription-log-entry ${entry.disliked ? 'disliked' : ''}`}
                         >
                           <button
                             onClick={() => handleDislike(entry.id)}
-                            style={{
-                              position: 'absolute',
-                              top: '8px',
-                              right: '8px',
-                              background: 'transparent',
-                              border: 'none',
-                              color: entry.disliked ? 'red' : 'black',
-                              cursor: 'pointer',
-                              fontSize: '18px',
-                            }}
+                            className={`transcription-log-entry-button ${entry.disliked ? 'disliked' : ''}`}
                             title={entry.disliked ? "Undo dislike" : "Dislike transcription"}
                           >
                             {entry.disliked ? '👎' : '👍'}
                           </button>
-                          <div
-                            style={{
-                              fontSize: '12px',
-                              color: '#666',
-                              marginBottom: '5px',
-                              paddingRight: '30px',
-                            }}
-                          >
+                          <div className="transcription-log-entry-timestamp">
                             {entry.timestamp.toLocaleTimeString()}
                           </div>
-                          <div
-                            style={{
-                              fontSize: '13px',
-                              lineHeight: '1.4',
-                              marginBottom: '8px',
-                              whiteSpace: 'pre-wrap',
-                              wordBreak: 'break-word',
-                            }}
-                          >
+                          <div className="transcription-log-entry-text">
                             {entry.text}
                           </div>
                           <audio
                             controls={!connected}
-                            style={{
-                              width: '100%',
-                              height: '30px',
-                              fontSize: '12px',
-                            }}
+                            className="transcription-log-entry-audio"
                             src={URL.createObjectURL(
                               new Blob([createWavFile(entry.audioBuffer, 16000)], { type: 'audio/wav' })
                             )}

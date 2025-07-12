@@ -195,4 +195,179 @@ body {
   }
 }
 
+// Transcription log styles
+.transcription-log-wrapper {
+  width: 300px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  
+  .transcription-log-header {
+    padding: 8px 12px;
+    background: #f8f9fa;
+    border: 1px solid #e1e5e9;
+    border-radius: 8px 8px 0 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .transcription-log-content {
+    flex: 1;
+    overflow: auto;
+    background: #ffffff;
+    border: 1px solid #e1e5e9;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    padding: 10px;
+    padding-top: 14px;
+    
+    .transcription-log-empty {
+      color: #6c757d;
+      font-style: italic;
+      text-align: center;
+      padding: 20px;
+    }
+    
+    .transcription-log-entry {
+      position: relative;
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border: 1px solid #e1e5e9;
+      
+      &.disliked {
+        background: #ffeeee;
+        border-color: #ffcdd2;
+      }
+      
+      .transcription-log-entry-button {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        font-size: 18px;
+        color: #6c757d;
+        transition: color 0.2s ease;
+        
+        &:hover {
+          color: #495057;
+        }
+        
+        &.disliked {
+          color: #dc3545;
+        }
+      }
+      
+      .transcription-log-entry-timestamp {
+        font-size: 12px;
+        color: #6c757d;
+        margin-bottom: 5px;
+        padding-right: 30px;
+      }
+      
+      .transcription-log-entry-text {
+        font-size: 13px;
+        line-height: 1.4;
+        margin-bottom: 8px;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: #212529;
+      }
+      
+      .transcription-log-entry-audio {
+        width: 100%;
+        height: 30px;
+        font-size: 12px;
+      }
+    }
+    
+    // Custom scrollbar
+    &::-webkit-scrollbar {
+      width: 8px;
+    }
+    
+    &::-webkit-scrollbar-track {
+      background: #f1f3f4;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #dadce0;
+      border-radius: 4px;
+      
+      &:hover {
+        background: #bdc1c6;
+      }
+    }
+  }
+}
+
+// Dark mode support for transcription log
+@media (prefers-color-scheme: dark) {
+  .transcription-log-wrapper {
+    .transcription-log-header {
+      background: #2d2d2d;
+      border-color: #404040;
+      color: #e1e5e9;
+    }
+    
+    .transcription-log-content {
+      background: #1a1a1a;
+      border-color: #404040;
+      
+      .transcription-log-empty {
+        color: #9ca3af;
+      }
+      
+      .transcription-log-entry {
+        background: #2d2d2d;
+        border-color: #404040;
+        
+        &.disliked {
+          background: #451a1a;
+          border-color: #7c2d2d;
+        }
+        
+        .transcription-log-entry-button {
+          color: #9ca3af;
+          
+          &:hover {
+            color: #e1e5e9;
+          }
+          
+          &.disliked {
+            color: #f87171;
+          }
+        }
+        
+        .transcription-log-entry-timestamp {
+          color: #9ca3af;
+        }
+        
+        .transcription-log-entry-text {
+          color: #e1e5e9;
+        }
+      }
+      
+      // Dark mode custom scrollbar
+      &::-webkit-scrollbar-track {
+        background: #404040;
+      }
+      
+      &::-webkit-scrollbar-thumb {
+        background: #6b7280;
+        
+        &:hover {
+          background: #9ca3af;
+        }
+      }
+    }
+  }
+}
+
 

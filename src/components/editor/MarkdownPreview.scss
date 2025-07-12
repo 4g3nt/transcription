@@ -174,4 +174,86 @@
   .preview-content {
     padding: 12px;
   }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .markdown-preview {
+    background: #1a1a1a;
+    border-color: #404040;
+  }
+  
+  .preview-header {
+    background: #2d2d2d;
+    border-color: #404040;
+    color: #e1e5e9;
+  }
+  
+  .preview-content {
+    background: #1a1a1a;
+    color: #e1e5e9;
+    
+    h1, h2, h3, h4, h5, h6 {
+      color: #e1e5e9;
+    }
+    
+    h1, h2 {
+      border-color: #404040;
+    }
+    
+    blockquote {
+      background: #2d2d2d;
+      border-color: #404040;
+      color: #e1e5e9;
+    }
+    
+    code {
+      background: #2d2d2d;
+      color: #e1e5e9;
+    }
+    
+    pre {
+      background: #2d2d2d;
+    }
+    
+    table {
+      th, td {
+        border-color: #404040;
+      }
+      
+      th {
+        background: #2d2d2d;
+        color: #e1e5e9;
+      }
+      
+      td {
+        color: #e1e5e9;
+      }
+    }
+    
+    hr {
+      border-color: #404040;
+    }
+    
+    a {
+      color: #64b5f6;
+      
+      &:hover {
+        color: #90caf9;
+      }
+    }
+    
+    // Dark mode custom scrollbar
+    &::-webkit-scrollbar-track {
+      background: #404040;
+    }
+    
+    &::-webkit-scrollbar-thumb {
+      background: #6b7280;
+      
+      &:hover {
+        background: #9ca3af;
+      }
+    }
+  }
 } 
