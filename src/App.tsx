@@ -20,6 +20,7 @@ import { LiveAPIProvider, useLiveAPIContext } from "./contexts/LiveAPIContext";
 import SidePanel from "./components/side-panel/SidePanel";
 import { Altair } from "./components/altair/Altair";
 import { Editor } from "./components/editor/Editor";
+import { MarkdownPreview } from "./components/editor/MarkdownPreview";
 import ControlTray from "./components/control-tray/ControlTray";
 import cn from "classnames";
 import { LiveClientOptions } from "./types";
@@ -51,6 +52,10 @@ function AppContent() {
   const [previousTranscription, setPreviousTranscription] = useState<string>("");
   // state to track transcription results
   const [transcriptionResults, setTranscriptionResults] = useState<string>("");
+  // state to track editor text for preview
+  const [editorText, setEditorText] = useState<string>("");
+  // state to track if preview is shown
+  const [showPreview, setShowPreview] = useState<boolean>(true);
   
   const { client } = useLiveAPIContext();
 
@@ -517,32 +522,66 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
         <div className="main-app-area">
           {/* APP goes here */}
           <Altair />
-          {/* Editor and Transcription Log Container */}
+          {/* Editor and Preview Container */}
           <div
+            className="editor-preview-container"
             style={{
               position: 'fixed',
               top: '50%',
               left: '50%',
               transform: 'translate(-50%, -50%)',
-              width: '500px',
+              width: showPreview ? '1000px' : '500px',
+              height: '600px',
+              display: 'flex',
               flexDirection: 'column',
               gap: '10px',
             }}
           >
-            {/* Editor for transcription */}
+
+            
+            {/* Editor and Preview Layout */}
             <div
-              className="editor-wrapper"
+              className="editor-preview-layout"
               style={{
-                height: '500px',
+                display: 'flex',
+                flex: 1,
+                gap: '10px',
+                minHeight: 0,
               }}
             >
-              <Editor
-                transcriptionText={transcriptionText}
-                modelTurnText={modelTurnText}
-                transcriptionResults={transcriptionResults}
-                onClear={clearAllText}
-              />
+              {/* Editor for transcription */}
+              <div
+                className="editor-wrapper"
+                style={{
+                  flex: 1,
+                  height: '100%',
+                }}
+              >
+                <Editor
+                  transcriptionText={transcriptionText}
+                  modelTurnText={modelTurnText}
+                  transcriptionResults={transcriptionResults}
+                  onClear={clearAllText}
+                  onTextChange={setEditorText}
+                  showPreview={showPreview}
+                  onTogglePreview={() => setShowPreview(!showPreview)}
+                />
+              </div>
+              
+              {/* Markdown Preview */}
+              {showPreview && (
+                <div
+                  className="preview-wrapper"
+                  style={{
+                    flex: 1,
+                    height: '100%',
+                  }}
+                >
+                  <MarkdownPreview content={editorText} />
+                </div>
+              )}
             </div>
+            
             {/* Original transcription display as a log */}
             <div
               ref={transcriptionDisplayRef}

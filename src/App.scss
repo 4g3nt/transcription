@@ -171,3 +171,28 @@ body {
   border-radius: 32px;
   max-height: fit-content;
 }
+
+// New responsive styles for editor and preview layout
+.editor-preview-container {
+  @media (max-width: 1200px) {
+    width: 90vw !important;
+    height: 80vh !important;
+  }
+  
+  @media (max-width: 768px) {
+    width: 95vw !important;
+    height: 85vh !important;
+    flex-direction: column !important;
+    
+    .editor-preview-layout {
+      flex-direction: column !important;
+    }
+    
+    .editor-wrapper,
+    .preview-wrapper {
+      height: 50% !important;
+    }
+  }
+}
+
+

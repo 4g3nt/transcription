@@ -25,7 +25,45 @@ interface EditorProps {
   transcriptionResults: string;
   onClear: () => void;
   onTextChange?: (text: string) => void;
+  showPreview?: boolean;
+  onTogglePreview?: () => void;
 }
+
+// Markdown toolbar component
+const MarkdownToolbar = ({ onFormatText }: { onFormatText: (format: string) => void }) => {
+  const buttons = [
+    { label: "B", title: "Bold", format: "bold" },
+    { label: "I", title: "Italic", format: "italic" },
+    { label: "H1", title: "Heading 1", format: "h1" },
+    { label: "H2", title: "Heading 2", format: "h2" },
+    { label: "H3", title: "Heading 3", format: "h3" },
+    { label: "•", title: "Bullet List", format: "ul" },
+    // { label: "1.", title: "Numbered List", format: "ol" },
+    // { label: "[]", title: "Checkbox", format: "checkbox" },
+    { label: "\"", title: "Quote", format: "quote" },
+    { label: "</>", title: "Code", format: "code" },
+    { label: "```", title: "Code Block", format: "codeblock" },
+    { label: "---", title: "Horizontal Rule", format: "hr" },
+    { label: "🔗", title: "Link", format: "link" },
+    { label: "📷", title: "Image", format: "image" },
+    // { label: "📋", title: "Table", format: "table" },
+  ];
+
+  return (
+    <div className="markdown-toolbar">
+      {buttons.map((button) => (
+        <button
+          key={button.format}
+          className="markdown-button"
+          onClick={() => onFormatText(button.format)}
+          title={button.title}
+        >
+          {button.label}
+        </button>
+      ))}
+    </div>
+  );
+};
 
 function EditorComponent({
   transcriptionText,
@@ -33,6 +71,8 @@ function EditorComponent({
   transcriptionResults,
   onClear,
   onTextChange,
+  showPreview = true,
+  onTogglePreview,
 }: EditorProps) {
   const { connected, connect, disconnect } = useLiveAPIContext();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -44,6 +84,96 @@ function EditorComponent({
   const prevTranscriptionTextRef = useRef<string>("");
   const prevModelTurnTextRef = useRef<string>("");
   const prevTranscriptionResultsRef = useRef<string>("");
+
+  // Markdown formatting functions
+  const formatText = (format: string) => {
+    if (!textareaRef.current) return;
+    
+    const textarea = textareaRef.current;
+    const { selectionStart, selectionEnd, value } = textarea;
+    const selectedText = value.substring(selectionStart, selectionEnd);
+    
+    let newText = "";
+    let cursorOffset = 0;
+    
+    switch (format) {
+      case "bold":
+        newText = `**${selectedText || "bold text"}**`;
+        cursorOffset = selectedText ? newText.length : 2;
+        break;
+      case "italic":
+        newText = `*${selectedText || "italic text"}*`;
+        cursorOffset = selectedText ? newText.length : 1;
+        break;
+      case "h1":
+        newText = `# ${selectedText || "Heading 1"}`;
+        cursorOffset = selectedText ? newText.length : 2;
+        break;
+      case "h2":
+        newText = `## ${selectedText || "Heading 2"}`;
+        cursorOffset = selectedText ? newText.length : 3;
+        break;
+      case "h3":
+        newText = `### ${selectedText || "Heading 3"}`;
+        cursorOffset = selectedText ? newText.length : 4;
+        break;
+      case "ul":
+        newText = `- ${selectedText || "List item"}`;
+        cursorOffset = selectedText ? newText.length : 2;
+        break;
+      case "ol":
+        newText = `1. ${selectedText || "List item"}`;
+        cursorOffset = selectedText ? newText.length : 3;
+        break;
+      case "checkbox":
+        newText = `- [ ] ${selectedText || "Task"}`;
+        cursorOffset = selectedText ? newText.length : 6;
+        break;
+      case "quote":
+        newText = `> ${selectedText || "Quote"}`;
+        cursorOffset = selectedText ? newText.length : 2;
+        break;
+      case "code":
+        newText = `\`${selectedText || "code"}\``;
+        cursorOffset = selectedText ? newText.length : 1;
+        break;
+      case "codeblock":
+        newText = `\`\`\`\n${selectedText || "code"}\n\`\`\``;
+        cursorOffset = selectedText ? newText.length : 4;
+        break;
+      case "hr":
+        newText = "\n---\n";
+        cursorOffset = newText.length;
+        break;
+      case "link":
+        newText = `[${selectedText || "link text"}](url)`;
+        cursorOffset = selectedText ? newText.length - 4 : newText.length - 4;
+        break;
+      case "image":
+        newText = `![${selectedText || "alt text"}](image-url)`;
+        cursorOffset = selectedText ? newText.length - 12 : newText.length - 12;
+        break;
+      case "table":
+        newText = `| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |`;
+        cursorOffset = newText.length;
+        break;
+      default:
+        return;
+    }
+    
+    const newValue = value.substring(0, selectionStart) + newText + value.substring(selectionEnd);
+    setEditorText(newValue);
+    onTextChange?.(newValue);
+    
+    // Update cursor position
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(
+        selectionStart + cursorOffset,
+        selectionStart + cursorOffset
+      );
+    }, 0);
+  };
 
   // This effect handles the insertion of new transcription text.
   useEffect(() => {
@@ -228,11 +358,7 @@ function EditorComponent({
       return { text: "Refinando transcrição...", color: "#FF9800" }; // Orange - Processing
     }
     if (transcriptionText) {
-      // if (transcriptionResults) {
-      //   return { text: "Transcrevendo...", color: "#9C27B0" }; // Purple - Combined state
-      // } else {
-        return { text: "Transcrevendo...", color: "#2196F3" }; // Blue - Live transcription
-      // }
+      return { text: "Transcrevendo...", color: "#2196F3" }; // Blue - Live transcription
     }
     if (transcriptionResults) {
       return { text: "Transcrição finalizada", color: "#4CAF50" }; // Green - Finalized
@@ -246,40 +372,53 @@ function EditorComponent({
     <div className="editor-container">
       <div className="editor-header">
         <div className="editor-controls">
-          <button
-            onClick={connected ? disconnect : connect}
-            className={cn("editor-button", "connect-toggle", { connected })}
-            title={connected ? "Stop recording" : "Start recording"}
-          >
-            <span className="material-symbols-outlined filled">
-              {connected ? "stop" : "fiber_manual_record"}
-            </span>
-          </button>
-          <button 
-            onClick={handleCopyToClipboard}
-            className="editor-button"
-            disabled={!editorText}
-            title="Copiar texto"
-          >
-            📋
-          </button>
-          <button 
-            onClick={handleDownloadText}
-            className="editor-button"
-            disabled={!editorText}
-            title="Baixar texto"
-          >
-            💾
-          </button>
-          <button 
-            onClick={handleClear}
-            className="editor-button clear-button"
-            title="Limpar texto"
-          >
-            🗑️
-          </button>
+          <div className="editor-controls-left">
+            <button
+              onClick={connected ? disconnect : connect}
+              className={cn("editor-button", "connect-toggle", { connected })}
+              title={connected ? "Stop recording" : "Start recording"}
+            >
+              <span className="material-symbols-outlined filled">
+                {connected ? "stop" : "fiber_manual_record"}
+              </span>
+            </button>
+            <button 
+              onClick={handleCopyToClipboard}
+              className="editor-button"
+              disabled={!editorText}
+              title="Copiar texto"
+            >
+              📋
+            </button>
+            <button 
+              onClick={handleDownloadText}
+              className="editor-button"
+              disabled={!editorText}
+              title="Baixar texto"
+            >
+              💾
+            </button>
+            <button 
+              onClick={handleClear}
+              className="editor-button clear-button"
+              title="Limpar texto"
+            >
+              🗑️
+            </button>
+          </div>
+          {onTogglePreview && (
+            <button 
+              onClick={onTogglePreview}
+              className={cn("editor-button", { active: showPreview })}
+              title={showPreview ? "Ocultar preview" : "Mostrar preview"}
+            >
+              👁️
+            </button>
+          )}
         </div>
       </div>
+      
+      <MarkdownToolbar onFormatText={formatText} />
       
       <textarea
         ref={textareaRef}
