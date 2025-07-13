@@ -843,7 +843,6 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
   // Handle sidebar functions
   const handleSelectReport = (report: Report) => {
     loadReport(report);
-    setSidebarOpen(false);
   };
 
   const handleCreateNewReport = () => {
@@ -891,7 +890,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                 top: '50%',
                 left: sidebarOpen ? '50%' : '50%',
                 transform: 'translate(-50%, -50%)',
-                width: showPreview && showTranscriptionLog ? '1400px' : showPreview || showTranscriptionLog ? '1100px' : '800px',
+                width: showPreview && showTranscriptionLog ? '1280px' : showPreview || showTranscriptionLog ? '1080px' : '800px',
                 height: '600px',
                 display: 'flex',
                 flexDirection: 'column',

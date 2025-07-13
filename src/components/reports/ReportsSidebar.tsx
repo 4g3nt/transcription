@@ -61,7 +61,7 @@ export const ReportsSidebar: React.FC<ReportsSidebarProps> = ({
         className={`sidebar-toggle ${isOpen ? 'open' : ''}`}
         title={isOpen ? 'Fechar sidebar' : 'Abrir sidebar'}
       >
-        {isOpen ? '◀' : '▶'}
+        {isOpen ? '✕' : '☰'}
       </button>
 
       {/* Sidebar overlay for mobile */}

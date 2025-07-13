@@ -1,38 +1,57 @@
 .sidebar-toggle {
   position: fixed;
-  top: 70px;
-  left: 20px;
+  top: 20px;
+  left: 15px;
   z-index: 1100;
-  background: rgba(255, 255, 255, 0.9);
+  background: linear-gradient(135deg, #4b6cb7 0%, #2c3e50 100%);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  width: 40px;
-  height: 40px;
+  border-radius: 8px;
+  width: 44px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 14px;
+  font-size: 16px;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  color: #667eea;
-  font-weight: bold;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px rgba(75, 108, 183, 0.3);
+  color: white;
+  font-weight: 600;
 
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 8px 25px rgba(75, 108, 183, 0.4);
+    background: linear-gradient(135deg, #5a7edc 0%, #3e5670 100%);
+  }
+
+  &:active {
+    transform: translateY(0) scale(0.98);
   }
 
   &.open {
-    left: 320px;
-    background: rgba(102, 126, 234, 0.9);
-    color: white;
+    left: 250px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #2c3e50;
+    border: 1px solid rgba(44, 62, 80, 0.3);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+
+    &:hover {
+      background: rgba(255, 255, 255, 1);
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    }
   }
 
   @media (max-width: 768px) {
+    top: 15px;
+    left: 10px;
+    width: 40px;
+    height: 40px;
+    font-size: 14px;
+    
     &.open {
-      left: 280px;
+      left: 270px;
     }
   }
 }
@@ -57,7 +76,7 @@
   top: 0;
   left: 0;
   height: 100vh;
-  width: 300px;
+  width: 240px;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(10px);
   border-right: 1px solid rgba(255, 255, 255, 0.2);
@@ -83,7 +102,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4b6cb7 0%, #2c3e50 100%);
   color: white;
 }
 
@@ -130,8 +149,8 @@
 .loading-spinner {
   width: 32px;
   height: 32px;
-  border: 3px solid rgba(102, 126, 234, 0.3);
-  border-top: 3px solid #667eea;
+  border: 3px solid rgba(75, 108, 183, 0.3);
+  border-top: 3px solid #4b6cb7;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto 16px;
@@ -144,7 +163,7 @@
 
 .error-state button,
 .create-first-report {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #4b6cb7 0%, #2c3e50 100%);
   border: none;
   border-radius: 8px;
   color: white;
@@ -157,7 +176,7 @@
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(75, 108, 183, 0.3);
   }
 }
 
@@ -173,12 +192,12 @@
   position: relative;
 
   &:hover {
-    background: rgba(102, 126, 234, 0.05);
+    background: rgba(75, 108, 183, 0.05);
   }
 
   &.selected {
-    background: rgba(102, 126, 234, 0.1);
-    border-left: 4px solid #667eea;
+    background: rgba(75, 108, 183, 0.1);
+    border-left: 4px solid #4b6cb7;
   }
 
   &:last-child {
@@ -221,12 +240,12 @@
 }
 
 .sidebar-content::-webkit-scrollbar-thumb {
-  background: rgba(102, 126, 234, 0.3);
+  background: rgba(75, 108, 183, 0.3);
   border-radius: 3px;
 }
 
 .sidebar-content::-webkit-scrollbar-thumb:hover {
-  background: rgba(102, 126, 234, 0.5);
+  background: rgba(75, 108, 183, 0.5);
 }
 
 // Responsive adjustments
