@@ -92,6 +92,7 @@ function EditorComponent({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const prevTranscriptionTextRef = useRef<string>("");
   const prevModelTurnTextRef = useRef<string>("");
@@ -104,6 +105,18 @@ function EditorComponent({
       setEditorText(externalEditorText);
     }
   }, [externalEditorText, editorText]);
+
+  // Cleanup timeouts on unmount
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Position cursor at the end of pre-loaded content on mount
   useEffect(() => {
@@ -382,6 +395,17 @@ function EditorComponent({
       setEditorText(newEditorText);
       onTextChange?.(newEditorText);
 
+      // Auto-save logic
+      if (turnCompleted && onSaveReport) {
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+          console.log("Auto-saving report content...");
+          onSaveReport(newEditorText);
+        }, 2000);
+      }
+
       const newCursorPosition = replaceFrom + textToInsert.length;
       setTimeout(() => {
         textarea.selectionStart = newCursorPosition;
@@ -408,6 +432,7 @@ function EditorComponent({
     isTyping,
     editorText,
     onTextChange,
+    onSaveReport,
   ]);
 
   const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
