@@ -70,7 +70,7 @@ export const ReportsSidebar: React.FC<ReportsSidebarProps> = ({
       {/* Sidebar */}
       <div className={`reports-sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
-          <h2 className="sidebar-title">Laudos</h2>
+          <h2 className="sidebar-title">Láudios</h2>
           <button
             onClick={onCreateNewReport}
             className="new-report-button"

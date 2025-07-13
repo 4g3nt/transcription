@@ -41,9 +41,9 @@ export const SignInPage: React.FC<SignInPageProps> = ({ className }) => {
       <div className="sign-in-container">
         <div className="sign-in-card">
           <div className="sign-in-header">
-            <h1 className="sign-in-title">Bem-vindo</h1>
+            <h1 className="sign-in-title">Bem-vindo ao Láudio</h1>
             <p className="sign-in-subtitle">
-              Sistema de Transcrição de Laudos Radiológicos
+              Transcrição de Laudos Médicos
             </p>
           </div>
 
