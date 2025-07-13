@@ -66,7 +66,12 @@ function AppContent() {
     audioBuffer: ArrayBuffer;
     timestamp: Date;
     disliked?: boolean;
+    edited?: boolean;
   }>>([]);
+  // state to track which entry is being actively edited
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
+  // state to track editing text for the currently edited entry
+  const [editingText, setEditingText] = useState<string>('');
   // Voice activity detection threshold (0.005 = very sensitive, 0.05 = less sensitive)
   const [vadThreshold, setVadThreshold] = useState<number>(0.01);
   
@@ -584,10 +589,49 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
 
   const handleDislike = (id: string) => {
     setTranscriptionLog(prevLog =>
-      prevLog.map(entry =>
-        entry.id === id ? { ...entry, disliked: !entry.disliked } : entry
-      )
+      prevLog.map(entry => {
+        if (entry.id === id) {
+          // Prevent undoing dislike if the entry was edited
+          if (entry.edited && entry.disliked) {
+            return entry;
+          }
+          return { ...entry, disliked: !entry.disliked };
+        }
+        return entry;
+      })
     );
+    // If undoing dislike, stop editing
+    if (editingEntryId === id) {
+      setEditingEntryId(null);
+      setEditingText('');
+    }
+  };
+
+  const handleTextClick = (id: string, currentText: string) => {
+    // Only allow editing if the entry is disliked
+    const entry = transcriptionLog.find(e => e.id === id);
+    if (entry?.disliked) {
+      setEditingEntryId(id);
+      setEditingText(currentText);
+    }
+  };
+
+  const handleTextChange = (newText: string) => {
+    setEditingText(newText);
+  };
+
+  const handleTextBlur = () => {
+    if (editingEntryId) {
+      // Save the edited text and mark as edited
+      setTranscriptionLog(prevLog =>
+        prevLog.map(entry =>
+          entry.id === editingEntryId ? { ...entry, text: editingText, edited: true } : entry
+        )
+      );
+      // Clear editing state
+      setEditingEntryId(null);
+      setEditingText('');
+    }
   };
 
   // Check if any transcription text is available to show the editor
@@ -749,17 +793,41 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                         >
                           <button
                             onClick={() => handleDislike(entry.id)}
-                            className={`transcription-log-entry-button ${entry.disliked ? 'disliked' : ''}`}
-                            title={entry.disliked ? "Undo dislike" : "Dislike transcription"}
+                            className={`transcription-log-entry-button ${entry.disliked ? 'disliked' : ''} ${entry.edited && entry.disliked ? 'locked' : ''}`}
+                            title={
+                              entry.edited && entry.disliked 
+                                ? "Transcrição editada (não pode ser revertida)" 
+                                : entry.disliked 
+                                  ? "Transcrição correta" 
+                                  : "Transcrição errônea"
+                            }
                           >
                             {entry.disliked ? '👎' : '👍'}
                           </button>
                           <div className="transcription-log-entry-timestamp">
                             {entry.timestamp.toLocaleTimeString()}
                           </div>
-                          <div className="transcription-log-entry-text">
-                            {entry.text}
-                          </div>
+                          {editingEntryId === entry.id ? (
+                            <div className="transcription-log-entry-edit">
+                              <textarea
+                                className="transcription-log-entry-textarea"
+                                value={editingText}
+                                onChange={(e) => handleTextChange(e.target.value)}
+                                onBlur={handleTextBlur}
+                                placeholder="Corrija a transcrição..."
+                                rows={3}
+                                autoFocus
+                              />
+                            </div>
+                          ) : (
+                            <div 
+                              className={`transcription-log-entry-text ${entry.disliked ? 'clickable' : ''}`}
+                              onClick={() => handleTextClick(entry.id, entry.text)}
+                              title={entry.disliked ? "Editar transcrição" : ""}
+                            >
+                              {entry.text}
+                            </div>
+                          )}
                           <audio
                             controls={!connected}
                             className="transcription-log-entry-audio"

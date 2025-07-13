@@ -262,6 +262,16 @@ body {
         &.disliked {
           color: #dc3545;
         }
+        
+        &.locked {
+          opacity: 0.6;
+          cursor: not-allowed;
+          
+          &:hover {
+            color: #dc3545;
+            transform: none;
+          }
+        }
       }
       
       .transcription-log-entry-timestamp {
@@ -278,6 +288,41 @@ body {
         white-space: pre-wrap;
         word-break: break-word;
         color: #212529;
+        
+        &.clickable {
+          cursor: pointer;
+          padding: 4px;
+          border-radius: 4px;
+          transition: background-color 0.2s ease;
+          
+          &:hover {
+            background-color: rgba(220, 53, 69, 0.1);
+          }
+        }
+      }
+      
+      .transcription-log-entry-edit {
+        margin-bottom: 8px;
+        
+        .transcription-log-entry-textarea {
+          width: 100%;
+          min-height: 60px;
+          padding: 8px;
+          border: 1px solid #dc3545;
+          border-radius: 4px;
+          resize: vertical;
+          font-size: 13px;
+          line-height: 1.4;
+          font-family: inherit;
+          background: #fff;
+          box-sizing: border-box;
+          
+          &:focus {
+            outline: none;
+            border-color: #c82333;
+            box-shadow: 0 0 0 2px rgba(220, 53, 69, 0.2);
+          }
+        }
       }
       
       .transcription-log-entry-audio {
@@ -343,6 +388,16 @@ body {
           &.disliked {
             color: #f87171;
           }
+          
+          &.locked {
+            opacity: 0.6;
+            cursor: not-allowed;
+            
+            &:hover {
+              color: #f87171;
+              transform: none;
+            }
+          }
         }
         
         .transcription-log-entry-timestamp {
@@ -351,6 +406,23 @@ body {
         
         .transcription-log-entry-text {
           color: #e1e5e9;
+          
+          &.clickable:hover {
+            background-color: rgba(248, 113, 113, 0.2);
+          }
+        }
+        
+        .transcription-log-entry-edit {
+          .transcription-log-entry-textarea {
+            background: #1a1a1a;
+            color: #e1e5e9;
+            border-color: #f87171;
+            
+            &:focus {
+              border-color: #ef4444;
+              box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.2);
+            }
+          }
         }
       }
       
