@@ -17,11 +17,15 @@ export const EmailVerification: React.FC = () => {
         return;
       }
 
+      // Delay for 2 seconds
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
       // Try to get email from localStorage first
-      let email = localStorage.getItem('emailForSignIn');
-      
+      let email = localStorage.getItem('emailForSignIn') || '';
+      console.log('email', email);
+      await new Promise(resolve => setTimeout(resolve, 2000));
       // If not found in localStorage, prompt user for email
-      if (!email) {
+      /* if (!email) {
         email = window.prompt('Por favor, insira seu e-mail para confirmação:');
       }
 
@@ -29,7 +33,7 @@ export const EmailVerification: React.FC = () => {
         setStatus('error');
         setMessage('E-mail é necessário para completar a verificação.');
         return;
-      }
+      } */
 
       try {
         await confirmSignInWithMagicLink(email, currentUrl);
