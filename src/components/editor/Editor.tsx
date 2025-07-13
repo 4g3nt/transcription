@@ -507,6 +507,16 @@ function EditorComponent({
                 {connected ? "fiber_manual_record" : "fiber_manual_record"}
               </span>
             </button>
+            {onSaveReport && (
+              <button 
+                onClick={handleSave}
+                className="editor-button"
+                title="Salvar laudo"
+                disabled={!editorText}
+              >
+                ✅
+              </button>
+            )}
             <button 
               onClick={handleCopyToClipboard}
               className="editor-button"
@@ -521,29 +531,19 @@ function EditorComponent({
               disabled={!editorText}
               title="Baixar texto"
             >
-              💾
+              📄
             </button>
             <button 
               onClick={handleClear}
-              className="editor-button clear-button"
+              className="editor-button"
               title="Limpar texto"
             >
-              🗑️
+              🧹
             </button>
-            {onSaveReport && (
-              <button 
-                onClick={handleSave}
-                className="editor-button save-button"
-                title="Salvar laudo"
-                disabled={!editorText}
-              >
-                ✅
-              </button>
-            )}
             {onDeleteReport && currentReport && (
               <button 
                 onClick={handleDelete}
-                className="editor-button delete-button"
+                className="editor-button clear-button"
                 title="Deletar laudo"
               >
                 🗑️

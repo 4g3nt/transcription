@@ -30,6 +30,7 @@ import ControlTray from "./components/control-tray/ControlTray";
 import cn from "classnames";
 import { LiveClientOptions } from "./types";
 import { LiveServerContent, GoogleGenAI } from "@google/genai";
+import { transcriptionService } from "./services/transcriptionService";
 
 const API_KEY = process.env.REACT_APP_GEMINI_API_KEY as string;
 if (typeof API_KEY !== "string") {
@@ -103,6 +104,26 @@ function AppContent() {
       setEditorText("# Laudo de Radiologia\n\n");
     }
   }, [currentReport]);
+
+  // Sync currentTranscriptions from Firestore with transcriptionLog state
+  useEffect(() => {
+    if (currentReport && currentTranscriptions.length > 0) {
+      // Convert Firestore transcriptions to the format expected by transcriptionLog
+      const logEntries = currentTranscriptions.map(trans => ({
+        id: trans.id,
+        text: trans.text,
+        audioBuffer: trans.audioData ? transcriptionService.base64ToArrayBuffer(trans.audioData) : new ArrayBuffer(0),
+        timestamp: trans.timestamp,
+        disliked: trans.disliked || false,
+        edited: trans.edited || false,
+      }));
+      
+      setTranscriptionLog(logEntries);
+    } else {
+      // If no report or no transcriptions, clear the log
+      setTranscriptionLog([]);
+    }
+  }, [currentTranscriptions, currentReport]);
   
   // Initialize Gemini AI client for transcription
   const geminiAI = new GoogleGenAI({ apiKey: API_KEY });
@@ -479,19 +500,19 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
             // Use trimmed audio for consistent playback in the log
             const trimmedAudio = trimSilenceFromAudio(concatenatedAudio, vadThreshold);
             
-            // Add to transcription log
-            const logEntry = {
-              id: Date.now().toString(),
-              text: transcription,
-              audioBuffer: trimmedAudio.byteLength > 0 ? trimmedAudio : concatenatedAudio,
-              timestamp: new Date(),
-              disliked: false,
-            };
-            setTranscriptionLog(prev => [...prev, logEntry]);
-            
             // Save to Firestore if there's a current report
             if (currentReport) {
               addTranscription(transcription, trimmedAudio.byteLength > 0 ? trimmedAudio : concatenatedAudio);
+            } else {
+              // If no current report, add to local log only
+              const logEntry = {
+                id: Date.now().toString(),
+                text: transcription,
+                audioBuffer: trimmedAudio.byteLength > 0 ? trimmedAudio : concatenatedAudio,
+                timestamp: new Date(),
+                disliked: false,
+              };
+              setTranscriptionLog(prev => [...prev, logEntry]);
             }
           }
           
@@ -616,27 +637,58 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     setModelTurnText("");
     setTranscriptionResults("");
     setPreviousTranscription("");
-    setTranscriptionLog([]);
+    
+    // Clear current report to reset everything
+    clearCurrentReport();
     
     // Create a new report when clearing
-    if (!currentReport) {
-      createNewReport();
-    }
+    createNewReport();
   };
 
-  const handleDislike = (id: string) => {
+  const handleDislike = async (id: string) => {
+    const entry = transcriptionLog.find(e => e.id === id);
+    if (!entry) return;
+    
+    // Prevent undoing dislike if the entry was edited
+    if (entry.edited && entry.disliked) {
+      return;
+    }
+    
+    // Update local state immediately for responsive UI
     setTranscriptionLog(prevLog =>
       prevLog.map(entry => {
         if (entry.id === id) {
-          // Prevent undoing dislike if the entry was edited
-          if (entry.edited && entry.disliked) {
-            return entry;
-          }
           return { ...entry, disliked: !entry.disliked };
         }
         return entry;
       })
     );
+    
+    // Update in Firestore if there's a current report
+    if (currentReport) {
+      const firestoreTranscription = currentTranscriptions.find(t => t.id === id);
+      if (firestoreTranscription) {
+        try {
+          await transcriptionService.updateTranscription(
+            currentReport.id,
+            id,
+            { disliked: !entry.disliked }
+          );
+        } catch (error) {
+          console.error('Error updating transcription dislike status:', error);
+          // Revert local state on error
+          setTranscriptionLog(prevLog =>
+            prevLog.map(entry => {
+              if (entry.id === id) {
+                return { ...entry, disliked: entry.disliked };
+              }
+              return entry;
+            })
+          );
+        }
+      }
+    }
+    
     // If undoing dislike, stop editing
     if (editingEntryId === id) {
       setEditingEntryId(null);
@@ -689,24 +741,21 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           return prevResults;
         });
         
-        // Save the edited text and mark as edited
-        setTranscriptionLog(prevLog =>
-          prevLog.map(entry =>
-            entry.id === editingEntryId ? { ...entry, text: newText, edited: true } : entry
-          )
-        );
-        
         // Update transcription in Firestore if there's a current report
         if (currentReport) {
-          // Find the corresponding Firestore transcription by timestamp or text
-          const firestoreTranscription = currentTranscriptions.find(t => 
-            t.text === originalText || 
-            Math.abs(t.timestamp.getTime() - entryToEdit.timestamp.getTime()) < 5000
-          );
+          // Since we're now syncing with Firestore, the entry ID should match the Firestore ID
+          const firestoreTranscription = currentTranscriptions.find(t => t.id === editingEntryId);
           
           if (firestoreTranscription) {
             updateTranscription(firestoreTranscription.id, newText, originalText);
           }
+        } else {
+          // If no current report, update local state only
+          setTranscriptionLog(prevLog =>
+            prevLog.map(entry =>
+              entry.id === editingEntryId ? { ...entry, text: newText, edited: true } : entry
+            )
+          );
         }
       }
       
