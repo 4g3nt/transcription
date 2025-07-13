@@ -455,6 +455,9 @@ function EditorComponent({
   };
 
   const getStatus = () => {
+    if (!connected) {
+      return { text: "Aguardando áudio...", color: "#9E9E9E", cssClass: "status-waiting" }; // Gray - Waiting
+    }
     if (modelTurnText) {
       return { text: "Refinando transcrição...", color: "#2196F3", cssClass: "status-processing" }; // Blue - Processing
     }
