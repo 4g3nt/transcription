@@ -622,12 +622,44 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
 
   const handleTextBlur = () => {
     if (editingEntryId) {
-      // Save the edited text and mark as edited
-      setTranscriptionLog(prevLog =>
-        prevLog.map(entry =>
-          entry.id === editingEntryId ? { ...entry, text: editingText, edited: true } : entry
-        )
-      );
+      // Find the entry being edited
+      const entryToEdit = transcriptionLog.find(entry => entry.id === editingEntryId);
+      if (entryToEdit) {
+        const originalText = entryToEdit.text;
+        const newText = editingText;
+        
+        // Update the editor text by replacing the original text with the edited text
+        setEditorText(prevEditorText => {
+          // Try to find the original text in the editor
+          const lastOccurrenceIndex = prevEditorText.lastIndexOf(originalText);
+          if (lastOccurrenceIndex !== -1) {
+            // Replace the original text with the edited text
+            return prevEditorText.substring(0, lastOccurrenceIndex) + 
+                   newText + 
+                   prevEditorText.substring(lastOccurrenceIndex + originalText.length);
+          }
+          return prevEditorText;
+        });
+        
+        // Update the transcription results to reflect the change
+        setTranscriptionResults(prevResults => {
+          const lastOccurrenceIndex = prevResults.lastIndexOf(originalText);
+          if (lastOccurrenceIndex !== -1) {
+            return prevResults.substring(0, lastOccurrenceIndex) + 
+                   newText + 
+                   prevResults.substring(lastOccurrenceIndex + originalText.length);
+          }
+          return prevResults;
+        });
+        
+        // Save the edited text and mark as edited
+        setTranscriptionLog(prevLog =>
+          prevLog.map(entry =>
+            entry.id === editingEntryId ? { ...entry, text: newText, edited: true } : entry
+          )
+        );
+      }
+      
       // Clear editing state
       setEditingEntryId(null);
       setEditingText('');
@@ -755,6 +787,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                   transcriptionResults={transcriptionResults}
                   onClear={clearAllText}
                   onTextChange={setEditorText}
+                  editorText={editorText}
                   showPreview={showPreview}
                   onTogglePreview={() => setShowPreview(!showPreview)}
                   showTranscriptionLog={showTranscriptionLog}
@@ -782,7 +815,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                   </div>
                   <div className="transcription-log-content" ref={transcriptionLogRef}>
                     {transcriptionLog.length === 0 ? (
-                      <div className="transcription-log-empty">
+                      <div style={{ color: '#666', fontStyle: 'italic', textAlign: 'center', padding: '20px' }}>
                         Nenhuma transcrição ainda
                       </div>
                     ) : (

@@ -25,6 +25,7 @@ interface EditorProps {
   transcriptionResults: string;
   onClear: () => void;
   onTextChange?: (text: string) => void;
+  editorText?: string;
   showPreview?: boolean;
   onTogglePreview?: () => void;
   showTranscriptionLog?: boolean;
@@ -73,6 +74,7 @@ function EditorComponent({
   transcriptionResults,
   onClear,
   onTextChange,
+  editorText: externalEditorText,
   showPreview = true,
   onTogglePreview,
   showTranscriptionLog = true,
@@ -89,6 +91,13 @@ function EditorComponent({
   const prevModelTurnTextRef = useRef<string>("");
   const prevTranscriptionResultsRef = useRef<string>("");
   const actualInsertedTextRef = useRef<string>(""); // Track the actual text inserted into editor
+
+  // Sync internal state with external editor text
+  useEffect(() => {
+    if (externalEditorText !== undefined && externalEditorText !== editorText) {
+      setEditorText(externalEditorText);
+    }
+  }, [externalEditorText, editorText]);
 
   // Position cursor at the end of pre-loaded content on mount
   useEffect(() => {
@@ -447,21 +456,21 @@ function EditorComponent({
 
   const getStatus = () => {
     if (modelTurnText) {
-      return { text: "Refinando transcrição...", color: "#2196F3" }; // Blue - Processing
+      return { text: "Refinando transcrição...", color: "#2196F3", cssClass: "status-processing" }; // Blue - Processing
     }
     if (transcriptionText) {
-      return { text: "Transcrevendo...", color: "#DC2626" }; // Red - Live transcription
+      return { text: "Transcrevendo...", color: "#DC2626", cssClass: "status-transcribing" }; // Red - Live transcription
     }
     if (transcriptionResults) {
-      return { text: "Transcrição finalizada", color: "#4CAF50" }; // Green - Finalized
+      return { text: "Transcrição finalizada", color: "#4CAF50", cssClass: "status-finalized" }; // Green - Finalized
     }
-    return { text: "Aguardando áudio...", color: "#9E9E9E" }; // Gray - Waiting
+    return { text: "Aguardando áudio...", color: "#9E9E9E", cssClass: "status-waiting" }; // Gray - Waiting
   };
 
   const status = getStatus();
 
   return (
-    <div className="editor-container">
+    <div className={cn("editor-container", status.cssClass)}>
       <div className="editor-header">
         <div className="editor-controls">
           <div className="editor-controls-left">
