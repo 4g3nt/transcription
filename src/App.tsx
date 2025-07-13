@@ -796,7 +796,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                             className={`transcription-log-entry-button ${entry.disliked ? 'disliked' : ''} ${entry.edited && entry.disliked ? 'locked' : ''}`}
                             title={
                               entry.edited && entry.disliked 
-                                ? "Transcrição editada (não pode ser revertida)" 
+                                ? "Transcrição corrijida (não pode ser revertida)" 
                                 : entry.disliked 
                                   ? "Transcrição correta" 
                                   : "Transcrição errônea"
