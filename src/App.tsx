@@ -17,6 +17,11 @@
 import { useRef, useState, useEffect } from "react";
 import "./App.scss";
 import { LiveAPIProvider, useLiveAPIContext } from "./contexts/LiveAPIContext";
+import { AuthProvider } from "./contexts/AuthContext";
+import { ReportProvider, useReport } from "./contexts/ReportContext";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
+import { ReportsSidebar } from "./components/reports/ReportsSidebar";
+import { Report } from "./types/firestore";
 import SidePanel from "./components/side-panel/SidePanel";
 import { Altair } from "./components/altair/Altair";
 import { Editor } from "./components/editor/Editor";
@@ -43,6 +48,8 @@ function AppContent() {
   const transcriptionLogRef = useRef<HTMLDivElement>(null);
   // either the screen capture, the video or null, if null we hide it
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
+  // sidebar state
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   // state to track transcription text
   const [transcriptionText, setTranscriptionText] = useState<string>("");
   // state to track modelTurn content
@@ -76,7 +83,27 @@ function AppContent() {
   const [vadThreshold, setVadThreshold] = useState<number>(0.01);
   
   const { client, connected } = useLiveAPIContext();
-
+    const { 
+    currentReport, 
+    currentTranscriptions, 
+    createNewReport, 
+    loadReport, 
+    saveReport, 
+    deleteReport, 
+    addTranscription, 
+    updateTranscription,
+    clearCurrentReport 
+  } = useReport();
+  
+  // Load report content when current report changes
+  useEffect(() => {
+    if (currentReport) {
+      setEditorText(currentReport.content);
+    } else {
+      setEditorText("# Laudo de Radiologia\n\n");
+    }
+  }, [currentReport]);
+  
   // Initialize Gemini AI client for transcription
   const geminiAI = new GoogleGenAI({ apiKey: API_KEY });
 
@@ -461,6 +488,11 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
               disliked: false,
             };
             setTranscriptionLog(prev => [...prev, logEntry]);
+            
+            // Save to Firestore if there's a current report
+            if (currentReport) {
+              addTranscription(transcription, trimmedAudio.byteLength > 0 ? trimmedAudio : concatenatedAudio);
+            }
           }
           
           // Concatenate the transcription results with proper formatting (only if transcription is not empty)
@@ -585,6 +617,11 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     setTranscriptionResults("");
     setPreviousTranscription("");
     setTranscriptionLog([]);
+    
+    // Create a new report when clearing
+    if (!currentReport) {
+      createNewReport();
+    }
   };
 
   const handleDislike = (id: string) => {
@@ -658,6 +695,19 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
             entry.id === editingEntryId ? { ...entry, text: newText, edited: true } : entry
           )
         );
+        
+        // Update transcription in Firestore if there's a current report
+        if (currentReport) {
+          // Find the corresponding Firestore transcription by timestamp or text
+          const firestoreTranscription = currentTranscriptions.find(t => 
+            t.text === originalText || 
+            Math.abs(t.timestamp.getTime() - entryToEdit.timestamp.getTime()) < 5000
+          );
+          
+          if (firestoreTranscription) {
+            updateTranscription(firestoreTranscription.id, newText, originalText);
+          }
+        }
       }
       
       // Clear editing state
@@ -741,28 +791,66 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     }
   })();
 
+  // Handle sidebar functions
+  const handleSelectReport = (report: Report) => {
+    loadReport(report);
+    setSidebarOpen(false);
+  };
+
+  const handleCreateNewReport = () => {
+    createNewReport();
+    setSidebarOpen(false);
+  };
+
+  const handleDeleteReport = async () => {
+    if (currentReport) {
+      await deleteReport(currentReport.id);
+      clearCurrentReport();
+    }
+  };
+
+  const handleEditorTextChange = (text: string) => {
+    setEditorText(text);
+    
+    // If there's no current report and user is typing, create a new report
+    if (!currentReport && text.trim() !== "# Laudo de Radiologia\n\n".trim()) {
+      createNewReport(text);
+    }
+  };
+
   return (
     <div className="streaming-console">
+      {/* Reports Sidebar */}
+      <ReportsSidebar
+        isOpen={sidebarOpen}
+        onToggle={() => setSidebarOpen(!sidebarOpen)}
+        onSelectReport={handleSelectReport}
+        selectedReportId={currentReport?.id || null}
+        onCreateNewReport={handleCreateNewReport}
+      />
+      
       {/* <SidePanel /> */}
       <main>
         <div className="main-app-area">
           {/* APP goes here */}
           <Altair />
           {/* Editor and Preview Container */}
-          <div
-            className="editor-preview-container"
-            style={{
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              transform: 'translate(-50%, -50%)',
-              width: showPreview && showTranscriptionLog ? '1400px' : showPreview || showTranscriptionLog ? '1100px' : '800px',
-              height: '600px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '10px',
-            }}
-          >
+                      <div
+              className="editor-preview-container"
+              style={{
+                position: 'fixed',
+                top: '50%',
+                left: sidebarOpen ? '50%' : '50%',
+                transform: 'translate(-50%, -50%)',
+                width: showPreview && showTranscriptionLog ? '1400px' : showPreview || showTranscriptionLog ? '1100px' : '800px',
+                height: '600px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '10px',
+                marginLeft: sidebarOpen ? '150px' : '0px',
+                transition: 'margin-left 0.3s ease',
+              }}
+            >
             {/* Editor and Preview Layout */}
             <div
               className="editor-preview-layout"
@@ -786,12 +874,15 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
                   modelTurnText={modelTurnText}
                   transcriptionResults={transcriptionResults}
                   onClear={clearAllText}
-                  onTextChange={setEditorText}
+                  onTextChange={handleEditorTextChange}
                   editorText={editorText}
                   showPreview={showPreview}
                   onTogglePreview={() => setShowPreview(!showPreview)}
                   showTranscriptionLog={showTranscriptionLog}
                   onToggleTranscriptionLog={() => setShowTranscriptionLog(!showTranscriptionLog)}
+                  currentReport={currentReport}
+                  onSaveReport={saveReport}
+                  onDeleteReport={handleDeleteReport}
                 />
               </div>
               
@@ -922,9 +1013,15 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
 function App() {
   return (
     <div className="App">
-      <LiveAPIProvider options={apiOptions}>
-        <AppContent />
-      </LiveAPIProvider>
+      <AuthProvider>
+        <ProtectedRoute>
+          <ReportProvider>
+            <LiveAPIProvider options={apiOptions}>
+              <AppContent />
+            </LiveAPIProvider>
+          </ReportProvider>
+        </ProtectedRoute>
+      </AuthProvider>
     </div>
   );
 }

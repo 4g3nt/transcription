@@ -138,6 +138,16 @@
     color: #dc2626;
   }
 
+  &.save-button:hover:not(:disabled) {
+    background: #ecfdf5;
+    color: #059669;
+  }
+
+  &.delete-button:hover:not(:disabled) {
+    background: #fef2f2;
+    color: #dc2626;
+  }
+
   &.active {
     background: #e3f2fd;
     color: #1976d2;

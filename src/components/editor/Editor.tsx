@@ -30,6 +30,9 @@ interface EditorProps {
   onTogglePreview?: () => void;
   showTranscriptionLog?: boolean;
   onToggleTranscriptionLog?: () => void;
+  currentReport?: any; // Report from firestore
+  onSaveReport?: (content: string) => void;
+  onDeleteReport?: () => void;
 }
 
 // Markdown toolbar component
@@ -79,6 +82,9 @@ function EditorComponent({
   onTogglePreview,
   showTranscriptionLog = true,
   onToggleTranscriptionLog,
+  currentReport,
+  onSaveReport,
+  onDeleteReport,
 }: EditorProps) {
   const { connected, connect, disconnect } = useLiveAPIContext();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -433,6 +439,21 @@ function EditorComponent({
     onClear();
   };
 
+  const handleSave = () => {
+    if (onSaveReport) {
+      onSaveReport(editorText);
+    }
+  };
+
+  const handleDelete = () => {
+    if (onDeleteReport && currentReport) {
+      const confirm = window.confirm('Tem certeza que deseja deletar este laudo?');
+      if (confirm) {
+        onDeleteReport();
+      }
+    }
+  };
+
   const handleCopyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(editorText);
@@ -509,6 +530,25 @@ function EditorComponent({
             >
               🗑️
             </button>
+            {onSaveReport && (
+              <button 
+                onClick={handleSave}
+                className="editor-button save-button"
+                title="Salvar laudo"
+                disabled={!editorText}
+              >
+                ✅
+              </button>
+            )}
+            {onDeleteReport && currentReport && (
+              <button 
+                onClick={handleDelete}
+                className="editor-button delete-button"
+                title="Deletar laudo"
+              >
+                🗑️
+              </button>
+            )}
           </div>
           <div className="editor-controls-right">
             {onTogglePreview && (
