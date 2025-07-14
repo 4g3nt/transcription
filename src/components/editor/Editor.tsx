@@ -93,6 +93,7 @@ function EditorComponent({
   const [isTyping, setIsTyping] = useState<boolean>(false);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [originalContent, setOriginalContent] = useState<string>("# Laudo de Radiologia\n\n");
 
   const prevTranscriptionTextRef = useRef<string>("");
   const prevModelTurnTextRef = useRef<string>("");
@@ -103,8 +104,19 @@ function EditorComponent({
   useEffect(() => {
     if (externalEditorText !== undefined && externalEditorText !== editorText) {
       setEditorText(externalEditorText);
+      setOriginalContent(externalEditorText);
     }
   }, [externalEditorText, editorText]);
+
+  // Update original content when a new report is loaded
+  useEffect(() => {
+    if (currentReport?.content !== undefined) {
+      setOriginalContent(currentReport.content);
+    }
+  }, [currentReport]);
+
+  // Check if content has changed (unsaved changes)
+  const hasUnsavedChanges = editorText !== originalContent;
 
   // Cleanup timeouts on unmount
   useEffect(() => {
@@ -413,6 +425,7 @@ function EditorComponent({
         saveTimeoutRef.current = setTimeout(() => {
           // console.log("Auto-saving report content...");
           onSaveReport(newEditorText);
+          setOriginalContent(newEditorText); // Reset original content after auto-save
         }, 2000);
       }
 
@@ -469,14 +482,17 @@ function EditorComponent({
   };
 
   const handleClear = () => {
-    setEditorText("");
-    onTextChange?.("");
+    const defaultContent = "# Laudo de Radiologia\n\n";
+    setEditorText(defaultContent);
+    setOriginalContent(defaultContent);
+    onTextChange?.(defaultContent);
     onClear();
   };
 
   const handleSave = () => {
     if (onSaveReport) {
       onSaveReport(editorText);
+      setOriginalContent(editorText); // Reset original content after save
     }
   };
 
@@ -545,7 +561,9 @@ function EditorComponent({
             {onSaveReport && (
               <button
                 onClick={handleSave}
-                className="editor-button"
+                className={cn("editor-button", "save-button", {
+                  "save-button-pulse": hasUnsavedChanges
+                })}
                 title="Salvar laudo"
                 disabled={!editorText}
               >

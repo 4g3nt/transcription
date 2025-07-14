@@ -139,8 +139,18 @@
   }
 
   &.save-button:hover:not(:disabled) {
-    background: #ecfdf5;
     color: #059669;
+  }
+
+  &.save-button-pulse {
+    animation: savePulse 2s infinite;
+    color: #059669;
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4);
+
+    &:hover {
+      background: #fecaca;
+      transform: translateY(-1px);
+    }
   }
 
   &.delete-button:hover:not(:disabled) {
@@ -339,6 +349,21 @@
   100% {
     border-color: #9E9E9E;
     box-shadow: 0 0 0 0 rgba(158, 158, 158, 0.1);
+  }
+}
+
+@keyframes savePulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4);
+  }
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.2);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.4);
   }
 }
 
