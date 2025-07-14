@@ -198,7 +198,7 @@ export class GenAILiveClient extends EventEmitter<LiveClientEventTypes> {
     if (message.serverContent) {
       if (message.serverContent.inputTranscription?.text) {
         const transcriptionText = message.serverContent.inputTranscription.text;
-        console.log(transcriptionText);
+        // console.log(transcriptionText);
         this.emit("transcription", transcriptionText);
         this.log("server.transcription", transcriptionText);
       }

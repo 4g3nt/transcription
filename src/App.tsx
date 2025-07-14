@@ -136,7 +136,7 @@ function AppContent() {
       // Capture audio chunks before sending them
       chunks.forEach(chunk => {
         if (chunk.mimeType.includes("audio")) {
-          console.log("Capturing input audio chunk:", chunk.data.length, "bytes (base64)");
+          // console.log("Capturing input audio chunk:", chunk.data.length, "bytes (base64)");
           setCurrentTurnInputAudioChunks(prev => [...prev, chunk.data]);
         }
       });
@@ -269,7 +269,7 @@ function AppContent() {
         }
       }
       if (!hasAudio) {
-        console.log("No voice activity detected in entire audio chunk");
+        // console.log("No voice activity detected in entire audio chunk");
         return new ArrayBuffer(0); // Return empty buffer if no voice activity
       }
       return audioBuffer;
@@ -289,7 +289,7 @@ function AppContent() {
     const trimmedFromStart = startIndex;
     const trimmedFromEnd = samples - endIndex;
     
-    console.log(`Trimming ${trimmedFromStart} samples (${(trimmedFromStart / sampleRate * 1000).toFixed(1)}ms) from beginning and ${trimmedFromEnd} samples (${(trimmedFromEnd / sampleRate * 1000).toFixed(1)}ms) from end of audio`);
+    // console.log(`Trimming ${trimmedFromStart} samples (${(trimmedFromStart / sampleRate * 1000).toFixed(1)}ms) from beginning and ${trimmedFromEnd} samples (${(trimmedFromEnd / sampleRate * 1000).toFixed(1)}ms) from end of audio`);
     
     // Create new buffer with trimmed audio
     const trimmedSamples = endIndex - startIndex;
@@ -307,14 +307,14 @@ function AppContent() {
   // Function to transcribe audio using Gemini API
   const transcribeAudio = async (audioBuffer: ArrayBuffer): Promise<string> => {
     try {
-      console.log("Starting transcription with Gemini API...");
+      // console.log("Starting transcription with Gemini API...");
       
       // Trim silence from the beginning of the audio
       const trimmedAudioBuffer = trimSilenceFromAudio(audioBuffer, vadThreshold);
       
       // Skip transcription if no voice activity was detected
       if (trimmedAudioBuffer.byteLength === 0) {
-        console.log("No voice activity detected, skipping transcription");
+        // console.log("No voice activity detected, skipping transcription");
         return "";
       }
       
@@ -424,7 +424,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
       });
 
       const transcription = response.text || JSON.parse(response.text || '')?.text || '';
-      console.log("Transcription result:", transcription);
+      // console.log("Transcription result:", transcription);
       return transcription;
     } catch (error) {
       console.error("Error transcribing audio:", error);
@@ -440,7 +440,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
       const trimmedAudioBuffer = trimSilenceFromAudio(audioBuffer, vadThreshold);
       
       if (trimmedAudioBuffer.byteLength === 0) {
-        console.log("No voice activity detected, skipping audio playback");
+        // console.log("No voice activity detected, skipping audio playback");
         return;
       }
     
@@ -448,7 +448,7 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
     const wavBuffer = createWavFile(trimmedAudioBuffer, 16000);
     const blob = new Blob([wavBuffer], { type: 'audio/wav' });
     const url = URL.createObjectURL(blob);
-    console.log("Audio URL:", url);
+    // console.log("Audio URL:", url);
     
     // Open in new window
     /* const newWindow = window.open('', '_blank');
@@ -475,13 +475,13 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
   // Listen for turn complete events to process collected input audio
   useEffect(() => {
     const onTurnComplete = async () => {
-      console.log("Turn complete! Input audio chunks collected:", currentTurnInputAudioChunks.length);
+      // console.log("Turn complete! Input audio chunks collected:", currentTurnInputAudioChunks.length);
       
       // Concatenate all input audio chunks from this turn
       if (currentTurnInputAudioChunks.length > 0) {
-        console.log("Processing input audio with", currentTurnInputAudioChunks.length, "chunks");
+        // console.log("Processing input audio with", currentTurnInputAudioChunks.length, "chunks");
         const concatenatedAudio = concatenateBase64AudioChunks(currentTurnInputAudioChunks);
-        console.log("Concatenated input audio size:", concatenatedAudio.byteLength, "bytes");
+        // console.log("Concatenated input audio size:", concatenatedAudio.byteLength, "bytes");
         
         // Capture the current turn's text to clear only this specific text later
         const currentModelText = modelTurnText;
@@ -526,29 +526,29 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
             setPreviousTranscription(transcription);
           }
           
-          console.log("Turn completed - State before clearing:", {
+          /* console.log("Turn completed - State before clearing:", {
             currentModelText: currentModelText.substring(0, 50),
             currentTranscriptionText: currentTranscriptionText.substring(0, 50),
             transcriptionResultsLength: transcriptionResults.length
-          });
+          }); */
           
           // Clear the modelTurnText completely after turn completion
           // This ensures the Editor can detect the next turn completion
-          console.log("Clearing modelTurnText and transcriptionText after turn completion");
+          // console.log("Clearing modelTurnText and transcriptionText after turn completion");
           setModelTurnText("");
           setTranscriptionText(current => {
             // Only clear if the text is still the same as when this turn completed
             return current === currentTranscriptionText ? "" : current;
           });
           
-          console.log("Transcription completed:", transcription);
+          // console.log("Transcription completed:", transcription);
         } catch (error) {
           console.error("Transcription failed:", error);
           setTranscriptionResults("Erro na transcrição");
         }
         
       } else {
-        console.log("No input audio chunks to process");
+        // console.log("No input audio chunks to process");
       }
       
       // Clear input audio chunks for next turn
@@ -580,16 +580,16 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
   // Listen for content events (modelTurn)
   useEffect(() => {
     const onContent = (data: LiveServerContent) => {
-      console.log("Received content:", data);
+      // console.log("Received content:", data);
       
       if (data.modelTurn && data.modelTurn.parts) {
-        console.log("ModelTurn parts:", data.modelTurn.parts);
+        // console.log("ModelTurn parts:", data.modelTurn.parts);
         
         // Check for audio parts
         const audioParts = data.modelTurn.parts.filter(part => 
           part.inlineData && part.inlineData.mimeType?.startsWith("audio/")
         );
-        console.log("Audio parts found:", audioParts.length);
+        // console.log("Audio parts found:", audioParts.length);
         
         // Extract text from all text parts
         let textParts = data.modelTurn.parts

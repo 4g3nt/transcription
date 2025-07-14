@@ -244,12 +244,12 @@ function EditorComponent({
 
     // Only log when turn completion is detected to reduce noise
     if (turnCompleted) {
-      console.log("Turn completion detected in Editor:", {
+      /* console.log("Turn completion detected in Editor:", {
         modelTurnTextLength: modelTurnText.length,
         lastModelTurnTextLength: lastModelTurnText.length,
         transcriptionResultsLength: transcriptionResults.length,
         prevTranscriptionResultsLength: prevTranscriptionResultsRef.current.length
-      });
+      }); */
     }
 
     if (turnCompleted) {
@@ -260,12 +260,12 @@ function EditorComponent({
 
       const actualInsertedText = actualInsertedTextRef.current;
 
-      console.log("Turn completed - replacing:", {
+      /* console.log("Turn completed - replacing:", {
         lastModelTurnText: lastModelTurnText.substring(0, 100),
         actualInsertedText: actualInsertedText.substring(0, 100),
         newFinalText: newFinalText.substring(0, 100),
         editorTextEnd: editorText.substring(Math.max(0, editorText.length - 100))
-      });
+      }); */
 
       if (newFinalText && actualInsertedText) {
         // Try multiple strategies to find and replace the actual inserted text
@@ -274,7 +274,7 @@ function EditorComponent({
         // Strategy 1: Exact match with actual inserted text
         let lastOccurrenceIndex = editorText.lastIndexOf(actualInsertedText);
         if (lastOccurrenceIndex !== -1) {
-          console.log("Found exact match with actual inserted text at index:", lastOccurrenceIndex);
+          // console.log("Found exact match with actual inserted text at index:", lastOccurrenceIndex);
           textToInsert = newFinalText;
           replaceFrom = lastOccurrenceIndex;
           replaceTo = lastOccurrenceIndex + actualInsertedText.length;
@@ -283,7 +283,7 @@ function EditorComponent({
 
         // Strategy 2: Try to find the text at the end of the editor
         if (!found && editorText.endsWith(actualInsertedText.trim())) {
-          console.log("Found actual inserted text at end of editor");
+          // console.log("Found actual inserted text at end of editor");
           const replaceStart = editorText.length - actualInsertedText.trim().length;
           textToInsert = newFinalText;
           replaceFrom = replaceStart;
@@ -293,7 +293,7 @@ function EditorComponent({
 
         // Strategy 3: Fallback to original model turn text matching
         if (!found && lastModelTurnText) {
-          console.log("Fallback to original model turn text matching");
+          // console.log("Fallback to original model turn text matching");
           lastOccurrenceIndex = editorText.lastIndexOf(lastModelTurnText);
           if (lastOccurrenceIndex !== -1) {
             textToInsert = newFinalText;
@@ -305,7 +305,7 @@ function EditorComponent({
 
         // Strategy 4: No match found, append new text
         if (!found) {
-          console.log("No match found, appending new text");
+          // console.log("No match found, appending new text");
           textToInsert = (editorText.endsWith('\n') ? '' : '\n\n') + newFinalText;
           replaceFrom = editorText.length;
           replaceTo = editorText.length;
@@ -379,11 +379,11 @@ function EditorComponent({
         // If this is the start of a new turn (previous model text was empty), reset the tracker
         if (lastModelTurnText.length === 0) {
           actualInsertedTextRef.current = textToInsert;
-          console.log("Starting new turn, resetting tracker:", { textToInsert });
+          // console.log("Starting new turn, resetting tracker:", { textToInsert });
         } else {
           // Continue tracking for the current turn
           actualInsertedTextRef.current = actualInsertedTextRef.current + textToInsert;
-          console.log("Continuing turn, tracking:", { textToInsert, totalInserted: actualInsertedTextRef.current });
+          // console.log("Continuing turn, tracking:", { textToInsert, totalInserted: actualInsertedTextRef.current });
         }
       }
 
@@ -401,7 +401,7 @@ function EditorComponent({
           clearTimeout(saveTimeoutRef.current);
         }
         saveTimeoutRef.current = setTimeout(() => {
-          console.log("Auto-saving report content...");
+          // console.log("Auto-saving report content...");
           onSaveReport(newEditorText);
         }, 2000);
       }
