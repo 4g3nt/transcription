@@ -354,8 +354,18 @@ function EditorComponent({
       textToInsert = transcriptionText.substring(
         prevTranscriptionTextRef.current.length
       );
-      replaceFrom = selectionStart;
-      replaceTo = selectionEnd;
+      
+      // If cursor is at the beginning and we have existing text, insert at the end instead
+      // This fixes the issue where restarting dictation inserts at the beginning
+      if (selectionStart === 0 && selectionEnd === 0 && editorText.length > 0) {
+        // Insert at the end of the text
+        replaceFrom = editorText.length;
+        replaceTo = editorText.length;
+      } else {
+        // Insert at the current cursor position
+        replaceFrom = selectionStart;
+        replaceTo = selectionEnd;
+      }
     }
 
     if (replaceFrom !== -1) {
