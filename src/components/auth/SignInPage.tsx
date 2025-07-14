@@ -27,7 +27,7 @@ export const SignInPage: React.FC<SignInPageProps> = ({ className }) => {
 
     try {
       await signInWithMagicLink(email);
-      setMessage('Link de acesso enviado! Verifique seu e-mail.');
+      setMessage('Link de acesso enviado para seu e-mail!');
     } catch (err: any) {
       setError('Erro ao enviar o link de acesso. Tente novamente.');
       console.error('Sign in error:', err);

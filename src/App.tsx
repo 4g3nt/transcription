@@ -883,7 +883,8 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
           {/* APP goes here */}
           <Altair />
           {/* Editor and Preview Container */}
-                      <div
+          {currentReport ? (
+            <div
               className="editor-preview-container"
               style={{
                 position: 'fixed',
@@ -1035,6 +1036,24 @@ Seu resultado deve ser estritamente o texto transcrito. Produza apenas as palavr
               <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{displayText}</p>
             </div> */}
           </div>
+          ) : (
+            <div
+              className="no-report-selected-container"
+              style={{
+                position: 'fixed',
+                top: '50%',
+                left: sidebarOpen ? '50%' : '50%',
+                transform: 'translate(-50%, -50%)',
+                textAlign: 'center',
+                color: '#9E9E9E',
+                marginLeft: sidebarOpen ? '150px' : '0px',
+                transition: 'margin-left 0.3s ease',
+              }}
+            >
+              <h2>Nenhum laudo selecionado</h2>
+              <p>Selecione um laudo na barra lateral ou crie um novo para começar.</p>
+            </div>
+          )}
           <video
             className={cn('stream', {
               hidden: !videoRef.current || !videoStream,

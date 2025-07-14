@@ -22,7 +22,7 @@ export const ReportsSidebar: React.FC<ReportsSidebarProps> = ({
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [hasLoadedInitialReport, setHasLoadedInitialReport] = useState(false);
+  const [creationAttempted, setCreationAttempted] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -40,14 +40,25 @@ export const ReportsSidebar: React.FC<ReportsSidebarProps> = ({
     return () => unsubscribe();
   }, [user]);
 
-  // Auto-load first report when reports are loaded for the first time
+  // Auto-load first report or create a new one if none exist
   useEffect(() => {
-    if (!loading && !hasLoadedInitialReport && reports.length > 0 && !selectedReportId) {
+    if (!loading && !creationAttempted) {
+      if (reports.length > 0) {
+        if (!selectedReportId) {
+          const firstReport = reports[0];
+          onSelectReport(firstReport);
+        }
+        setCreationAttempted(true); // Mark as attempted once we have reports and select one
+      } else if (reports.length === 0 && user) {
+        onCreateNewReport();
+        setCreationAttempted(true); // Mark as attempted to prevent re-creation
+      }
+    } else if (!loading && reports.length > 0 && !selectedReportId) {
+      // This handles selecting a newly created report after the creation was attempted
       const firstReport = reports[0];
       onSelectReport(firstReport);
-      setHasLoadedInitialReport(true);
     }
-  }, [loading, reports, hasLoadedInitialReport, selectedReportId, onSelectReport]);
+  }, [loading, reports, creationAttempted, selectedReportId, onSelectReport, onCreateNewReport, user]);
 
   const formatDate = (date: Date): string => {
     return new Intl.DateTimeFormat('pt-BR', {
