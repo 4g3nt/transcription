@@ -22,6 +22,7 @@ export const ReportsSidebar: React.FC<ReportsSidebarProps> = ({
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasLoadedInitialReport, setHasLoadedInitialReport] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -38,6 +39,15 @@ export const ReportsSidebar: React.FC<ReportsSidebarProps> = ({
 
     return () => unsubscribe();
   }, [user]);
+
+  // Auto-load first report when reports are loaded for the first time
+  useEffect(() => {
+    if (!loading && !hasLoadedInitialReport && reports.length > 0 && !selectedReportId) {
+      const firstReport = reports[0];
+      onSelectReport(firstReport);
+      setHasLoadedInitialReport(true);
+    }
+  }, [loading, reports, hasLoadedInitialReport, selectedReportId, onSelectReport]);
 
   const formatDate = (date: Date): string => {
     return new Intl.DateTimeFormat('pt-BR', {

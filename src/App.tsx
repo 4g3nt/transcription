@@ -50,7 +50,7 @@ function AppContent() {
   // either the screen capture, the video or null, if null we hide it
   const [videoStream, setVideoStream] = useState<MediaStream | null>(null);
   // sidebar state
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   // state to track transcription text
   const [transcriptionText, setTranscriptionText] = useState<string>("");
   // state to track modelTurn content
