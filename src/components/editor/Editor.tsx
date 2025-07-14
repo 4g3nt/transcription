@@ -103,6 +103,15 @@ function EditorComponent({
   useEffect(() => {
     if (externalEditorText !== undefined && externalEditorText !== editorText) {
       setEditorText(externalEditorText);
+      // Position cursor at the end when external content is loaded
+      setTimeout(() => {
+        if (textareaRef.current) {
+          const textarea = textareaRef.current;
+          textarea.selectionStart = externalEditorText.length;
+          textarea.selectionEnd = externalEditorText.length;
+          textarea.focus();
+        }
+      }, 0);
     }
   }, [externalEditorText, editorText]);
 
@@ -118,7 +127,7 @@ function EditorComponent({
     };
   }, []);
 
-  // Position cursor at the end of pre-loaded content on mount
+  // Position cursor at the end of pre-loaded content on mount and when report is loaded
   useEffect(() => {
     if (textareaRef.current && editorText) {
       const textarea = textareaRef.current;
@@ -127,7 +136,7 @@ function EditorComponent({
       textarea.selectionEnd = editorText.length;
       textarea.focus();
     }
-  }, []); // Empty dependency array means this runs only once on mount
+  }, [currentReport]); // Run when currentReport changes (report loaded)
 
   // Markdown formatting functions
   const formatText = (format: string) => {
