@@ -72,20 +72,20 @@ const MarkdownToolbar = ({ onFormatText }: { onFormatText: (format: string) => v
 };
 
 function EditorComponent({
-  transcriptionText,
-  modelTurnText,
-  transcriptionResults,
-  onClear,
-  onTextChange,
-  editorText: externalEditorText,
-  showPreview = true,
-  onTogglePreview,
-  showTranscriptionLog = true,
-  onToggleTranscriptionLog,
-  currentReport,
-  onSaveReport,
-  onDeleteReport,
-}: EditorProps) {
+                           transcriptionText,
+                           modelTurnText,
+                           transcriptionResults,
+                           onClear,
+                           onTextChange,
+                           editorText: externalEditorText,
+                           showPreview = true,
+                           onTogglePreview,
+                           showTranscriptionLog = true,
+                           onToggleTranscriptionLog,
+                           currentReport,
+                           onSaveReport,
+                           onDeleteReport,
+                         }: EditorProps) {
   const { connected, connect, disconnect } = useLiveAPIContext();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [editorText, setEditorText] = useState<string>("# Laudo de Radiologia\n\n");
@@ -103,15 +103,6 @@ function EditorComponent({
   useEffect(() => {
     if (externalEditorText !== undefined && externalEditorText !== editorText) {
       setEditorText(externalEditorText);
-      // Position cursor at the end when external content is loaded
-      setTimeout(() => {
-        if (textareaRef.current) {
-          const textarea = textareaRef.current;
-          textarea.selectionStart = externalEditorText.length;
-          textarea.selectionEnd = externalEditorText.length;
-          textarea.focus();
-        }
-      }, 0);
     }
   }, [externalEditorText, editorText]);
 
@@ -127,7 +118,7 @@ function EditorComponent({
     };
   }, []);
 
-  // Position cursor at the end of pre-loaded content on mount and when report is loaded
+  // Position cursor at the end of pre-loaded content on mount
   useEffect(() => {
     if (textareaRef.current && editorText) {
       const textarea = textareaRef.current;
@@ -136,19 +127,19 @@ function EditorComponent({
       textarea.selectionEnd = editorText.length;
       textarea.focus();
     }
-  }, [currentReport]); // Run when currentReport changes (report loaded)
+  }, []); // Empty dependency array means this runs only once on mount
 
   // Markdown formatting functions
   const formatText = (format: string) => {
     if (!textareaRef.current) return;
-    
+
     const textarea = textareaRef.current;
     const { selectionStart, selectionEnd, value } = textarea;
     const selectedText = value.substring(selectionStart, selectionEnd);
-    
+
     let newText = "";
     let cursorOffset = 0;
-    
+
     switch (format) {
       case "bold":
         newText = `**${selectedText || "bold text"}**`;
@@ -213,11 +204,11 @@ function EditorComponent({
       default:
         return;
     }
-    
+
     const newValue = value.substring(0, selectionStart) + newText + value.substring(selectionEnd);
     setEditorText(newValue);
     onTextChange?.(newValue);
-    
+
     // Update cursor position
     setTimeout(() => {
       textarea.focus();
@@ -269,17 +260,17 @@ function EditorComponent({
 
       const actualInsertedText = actualInsertedTextRef.current;
 
-      console.log("Turn completed - replacing:", { 
-        lastModelTurnText: lastModelTurnText.substring(0, 100), 
+      console.log("Turn completed - replacing:", {
+        lastModelTurnText: lastModelTurnText.substring(0, 100),
         actualInsertedText: actualInsertedText.substring(0, 100),
-        newFinalText: newFinalText.substring(0, 100), 
+        newFinalText: newFinalText.substring(0, 100),
         editorTextEnd: editorText.substring(Math.max(0, editorText.length - 100))
       });
 
       if (newFinalText && actualInsertedText) {
         // Try multiple strategies to find and replace the actual inserted text
         let found = false;
-        
+
         // Strategy 1: Exact match with actual inserted text
         let lastOccurrenceIndex = editorText.lastIndexOf(actualInsertedText);
         if (lastOccurrenceIndex !== -1) {
@@ -289,7 +280,7 @@ function EditorComponent({
           replaceTo = lastOccurrenceIndex + actualInsertedText.length;
           found = true;
         }
-        
+
         // Strategy 2: Try to find the text at the end of the editor
         if (!found && editorText.endsWith(actualInsertedText.trim())) {
           console.log("Found actual inserted text at end of editor");
@@ -299,7 +290,7 @@ function EditorComponent({
           replaceTo = editorText.length;
           found = true;
         }
-        
+
         // Strategy 3: Fallback to original model turn text matching
         if (!found && lastModelTurnText) {
           console.log("Fallback to original model turn text matching");
@@ -311,7 +302,7 @@ function EditorComponent({
             found = true;
           }
         }
-        
+
         // Strategy 4: No match found, append new text
         if (!found) {
           console.log("No match found, appending new text");
@@ -324,7 +315,7 @@ function EditorComponent({
       // Case 2: New model turn text, replaces live transcription.
       textToInsert = modelTurnText.substring(lastModelTurnText.length); // Insert only the new portion
       const lastLiveText = prevTranscriptionTextRef.current;
-      
+
       if (lastLiveText.length > 0) {
         // Find and replace the live transcription text
         const lastOccurrenceIndex = editorText.lastIndexOf(lastLiveText);
@@ -384,7 +375,7 @@ function EditorComponent({
       // Track the actual text that will be inserted for model turn content
       if (modelTurnText.length > lastModelTurnText.length) {
         const newModelContent = modelTurnText.substring(lastModelTurnText.length);
-        
+
         // If this is the start of a new turn (previous model text was empty), reset the tracker
         if (lastModelTurnText.length === 0) {
           actualInsertedTextRef.current = textToInsert;
@@ -429,7 +420,7 @@ function EditorComponent({
     prevTranscriptionTextRef.current = transcriptionText;
     prevModelTurnTextRef.current = modelTurnText;
     prevTranscriptionResultsRef.current = transcriptionResults;
-    
+
     // Clear the tracked inserted text when turn completes
     if (turnCompleted) {
       actualInsertedTextRef.current = "";
@@ -542,7 +533,7 @@ function EditorComponent({
               </span>
             </button>
             {onSaveReport && (
-              <button 
+              <button
                 onClick={handleSave}
                 className="editor-button"
                 title="Salvar laudo"
@@ -551,7 +542,7 @@ function EditorComponent({
                 ✅
               </button>
             )}
-            <button 
+            <button
               onClick={handleCopyToClipboard}
               className="editor-button"
               disabled={!editorText}
@@ -559,7 +550,7 @@ function EditorComponent({
             >
               📋
             </button>
-            <button 
+            <button
               onClick={handleDownloadText}
               className="editor-button"
               disabled={!editorText}
@@ -567,7 +558,7 @@ function EditorComponent({
             >
               📄
             </button>
-            <button 
+            <button
               onClick={handleClear}
               className="editor-button"
               title="Limpar texto"
@@ -575,7 +566,7 @@ function EditorComponent({
               🧹
             </button>
             {onDeleteReport && currentReport && (
-              <button 
+              <button
                 onClick={handleDelete}
                 className="editor-button clear-button"
                 title="Deletar laudo"
@@ -586,7 +577,7 @@ function EditorComponent({
           </div>
           <div className="editor-controls-right">
             {onTogglePreview && (
-              <button 
+              <button
                 onClick={onTogglePreview}
                 className={cn("editor-button", { active: showPreview })}
                 title={showPreview ? "Ocultar pré-visualização" : "Mostrar pré-visualização"}
@@ -595,7 +586,7 @@ function EditorComponent({
               </button>
             )}
             {onToggleTranscriptionLog && (
-              <button 
+              <button
                 onClick={onToggleTranscriptionLog}
                 className={cn("editor-button", { active: showTranscriptionLog })}
                 title={showTranscriptionLog ? "Ocultar transcrições" : "Mostrar transcrições"}
@@ -606,9 +597,9 @@ function EditorComponent({
           </div>
         </div>
       </div>
-      
+
       <MarkdownToolbar onFormatText={formatText} />
-      
+
       <textarea
         ref={textareaRef}
         className="editor-textarea"
@@ -619,7 +610,7 @@ function EditorComponent({
         placeholder="A transcrição aparecerá aqui conforme for ditada..."
         spellCheck={false}
       />
-      
+
       <div className="editor-footer">
         <div className="editor-status">
           <div
