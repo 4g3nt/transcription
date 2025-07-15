@@ -80,7 +80,7 @@ export const ReportsSidebar: React.FC<ReportsSidebarProps> = ({
       <button
         onClick={onToggle}
         className={`sidebar-toggle ${isOpen ? 'open' : ''}`}
-        title={isOpen ? 'Fechar sidebar' : 'Abrir sidebar'}
+        title={isOpen ? 'Fechar lista de laudos' : 'Abrir lista de laudos'}
       >
         {isOpen ? '✕' : '☰'}
       </button>
@@ -97,7 +97,7 @@ export const ReportsSidebar: React.FC<ReportsSidebarProps> = ({
             className="new-report-button"
             title="Novo laudo"
           >
-            ➕
+            +
           </button>
         </div>
 

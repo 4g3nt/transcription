@@ -157,7 +157,7 @@
   border: 1px solid var(--sidebar-button-border);
   border-radius: 20px;
   color: white;
-  font-size: 16px;
+  font-size: 24px;
   width: 36px;
   height: 36px;
   cursor: pointer;
@@ -167,7 +167,7 @@
   justify-content: center;
 
   &:hover {
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(255, 255, 255, 0.2);
     transform: scale(1.05);
   }
 }
@@ -313,7 +313,7 @@
   .new-report-button {
     width: 32px;
     height: 32px;
-    font-size: 14px;
+    font-size: 24px;
   }
 
   .report-item {

@@ -574,7 +574,7 @@ function EditorComponent({
               onClick={handleCopyToClipboard}
               className="editor-button"
               disabled={!editorText}
-              title="Copiar texto"
+              title="Copiar laudo"
             >
               📋
             </button>
@@ -582,9 +582,9 @@ function EditorComponent({
               onClick={handleDownloadText}
               className="editor-button"
               disabled={!editorText}
-              title="Baixar texto"
+              title="Baixar laudo"
             >
-              📄
+              ⬇️
             </button>
             {/* <button
               onClick={handleClear}
@@ -599,7 +599,7 @@ function EditorComponent({
                 className="editor-button clear-button"
                 title="Deletar laudo"
               >
-                🗑️
+                ❌
               </button>
             )}
           </div>

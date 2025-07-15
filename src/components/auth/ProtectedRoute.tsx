@@ -25,7 +25,7 @@ const SignOutButton: React.FC = () => {
       className="sign-out-button"
       title="Sair"
     >
-      🚪
+      ↩
     </button>
   );
 };
