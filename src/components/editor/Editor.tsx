@@ -586,13 +586,13 @@ function EditorComponent({
             >
               📄
             </button>
-            <button
+            {/* <button
               onClick={handleClear}
               className="editor-button"
               title="Limpar texto"
             >
               🧹
-            </button>
+            </button> */}
             {onDeleteReport && currentReport && (
               <button
                 onClick={handleDelete}
